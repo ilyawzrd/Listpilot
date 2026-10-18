@@ -6,8 +6,12 @@ places and writes notes, then hard-reloads and diffs the result against the plan
 
 Division of labour: the model does the judgment work (parse a source, ask for list names, resolve
 each place to a `/maps/place/` URL, flag ambiguous ones). This executor only clicks, and it does so
-the same way every time. The `listpilot-apply` skill connects the two: it turns a document into
-`plan.json` and runs this.
+the same way every time. Three project skills form the chain, split by how much judgment each
+needs: `listpilot-research` (optional: deep research by default, web + Reddit snippets →
+`research/<slug>.json` → review page → a places file; session model, Opus or Sonnet via `start.sh`),
+`listpilot-apply` (`model: sonnet`: document → resolved `plan.json`), and `listpilot-run`
+(`model: haiku`: runs `dry`/`apply` and reports). All three run at `effort: medium`. Each hands off to the next in the same turn. A skill's `model:` lasts
+for the rest of that turn only, so a new user prompt goes back to the session model.
 
 ## Layout
 
@@ -17,20 +21,28 @@ the same way every time. The `listpilot-apply` skill connects the two: it turns 
 - `src/run.ts`: orchestration. `apply` opens each place once, resolving and saving it in the same visit, then does icon + notes in one list-view pass, then hard reload and verify. `--dry-run` resolves everything and reads each place's Save-dialog checkbox (exact for chain branches). Writes `artifacts/report.json`, exit code 2 on verify failure
 - `src/probe.ts`: read-only calibration that dumps ARIA snapshots (incl. the New-list form peek, `aria-2b-new-list-form.yaml`) and `rows.json` to `artifacts/`
 - `src/resolve.ts`: `npm run resolve`. Chrome-free place lookup (see "Resolving places without Chrome"); prints candidates, writes `artifacts/resolve.json`
+- `src/review.ts`: `npm run review -- research/<slug>.json`. `ResearchSchema` (zod; sample `examples/research.example.json`) + a review page served on 127.0.0.1 with a random token: checkbox + editable note per place, details on click, filtered-out places collapsed and unticked. Continue writes `<slug>.places.md` and the choices back into the JSON. Exit 0 submitted · 1 invalid · 2 cancelled · 3 still waiting (`--wait`, re-run with `--resume`: same port/token, page reconnects) · 4 no heartbeat (`--idle`). `--check` validates only
+- `src/clean.ts`: `npm run clean [-- --dry-run]`. Removes `artifacts/*`, every untracked `plan*.json` (incl. `plan.retry.json`, dated backups, custom names), everything in `research/` except `*.places.md`, `reports/`, `research_notes/`. In `.gmaps-state.json` it drops only entries that can't match again (name > 40 chars, or `zz-*` test lists). Keeps git-tracked files and real list entries. `listpilot-run` calls it after a fully verified apply only
+- `start.sh`: `npm start`. Preflight (claude, node ≥18, node_modules, Chrome), then mode: **research** (lists the 5 questions with examples; what incl. preferences / where / list name ≤40, `"` stripped / depth / model; soft check moves a place typed into What to Where) → `claude --model <opus|sonnet> --effort medium "/listpilot-research …"`, or **.md file** (path resolved against the caller's cwd, optional list name) → `claude --model sonnet --effort medium "/listpilot-apply …"`. User input travels as one argv element
 - `src/connect.ts`: `--cdp auto` (reads `DevToolsActivePort`), `http://…` discovery, or `ws://…`
-- `.claude/skills/listpilot-apply/SKILL.md`: project skill. A `.md` file of places → `plan.json` → `dry` → `apply` (new list or update). Sample input: `examples/places.example.md`
+- `.claude/skills/listpilot-research/SKILL.md`: optional first step. "Bakeries in Lisbon" → the `deep-research` skill (or one quick pass with `--quick`) → filtered research (no tourist traps or viral places) → `research/<slug>-<date>.json` → review page (`npm run review`) → `.places.md` → apply
+- `.claude/skills/listpilot-apply/SKILL.md`: Sonnet. A `.md` file of places → resolved `plan.json` + `artifacts/plan-summary.md` → run. Sample input: `examples/places.example.md`
+- `.claude/skills/listpilot-run/SKILL.md`: Haiku. Shows the summary, asks Apply (recommended, new or existing list) / Dry run, checks Chrome, runs, reports from `report.json`, cleans up after a verified apply. `--report` only reads the last report
 - `docs/ui-options.md`: parked ideas for a drag-and-drop UI. There's no hosted version, because a server can't reach the user's Chrome.
 
 ## Commands
 
 ```bash
+npm start                                                                # start.sh: research or .md → review → Maps
 npm run resolve -- queries.txt | --query '<name city>'                  # no Chrome: candidates + /maps/place/ URLs
+npm run review -- research/<slug>.json [--resume] [--no-open] | --check  # review page → research/<slug>.places.md
+npm run clean [-- --dry-run]                                             # keep only research/*.places.md + state
 npm run probe -- '<maps place url>' '<existing list name>' --cdp auto   # read-only
 npm run dry   -- plan.json --cdp auto                                    # resolves + reads, writes nothing
 npm run apply -- plan.json --cdp auto                                    # writes, then verifies
 npm run chrome                                                           # dedicated Chrome profile on 9222
 npm run typecheck
-npm test                                                                 # pure logic: parseRows, title matching, plan schema
+npm test                                                                 # pure logic: parseRows, title matching, plan schema, review page + server, clean
 ```
 
 ## Connecting to Chrome
@@ -114,9 +126,9 @@ npm test                                                                 # pure 
   k-th entry with the k-th same-name row for notes and verify, and drops entries that resolve to
   the same place id. "Same name" means exact title first (`titleGroup`), falling back to `sameTitle`
   prefix matching, so "Septime" and "Septime La Cave" never share a group.
-- Run `dry` before `apply` when updating an existing list. For a new list it adds nothing (apply
-  skips closed/unresolved places itself), so the skill previews the resolved names instead.
-  `apply` doesn't depend on it, but writes can't be undone.
+- `dry` is optional. Apply is the recommended choice for new and existing lists: it checks each
+  place's Save-dialog checkbox, skips closed/unresolved places, and never saves twice. Dry run
+  shows what's new first. Writes can't be undone.
 - List names are capped at 40 characters (`MAX_LIST_NAME` in `plan.ts`): Maps cuts longer ones,
   and the executor then can't find the list it created.
   Use throwaway lists for testing writes.
