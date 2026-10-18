@@ -29,7 +29,6 @@ for the rest of that turn only, so a new user prompt goes back to the session mo
 - `.claude/skills/listpilot-apply/SKILL.md`: Sonnet. A `.md` file of places → resolved `plan.json` + `artifacts/plan-summary.md` → run. Sample input: `examples/places.example.md`
 - `.claude/skills/listpilot-run/SKILL.md`: Haiku. Shows the summary, asks Apply (recommended, new or existing list) / Dry run, checks Chrome, runs, reports from `report.json`, cleans up after a verified apply. `--report` only reads the last report
 - `README.md` is for non-technical users (setup, `./start.sh`, troubleshooting). Commands, flags and internals go in `docs/advanced.md`
-- `docs/ui-options.md`: parked ideas for a drag-and-drop UI. There's no hosted version, because a server can't reach the user's Chrome.
 
 ## Commands
 
