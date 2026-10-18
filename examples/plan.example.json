@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "lists": [
+    {
+      "name": "Taipei",
+      "emoji": "🥟",
+      "places": [
+        {
+          "name": "Din Tai Fung Xinyi",
+          "query": "Din Tai Fung Xinyi Taipei",
+          "note": "Go at opening to skip the queue; order the truffle xiaolongbao."
+        },
+        {
+          "name": "Raohe Night Market",
+          "query": "Raohe Street Night Market Taipei",
+          "note": "Black-pepper buns at the entrance gate."
+        },
+        {
+          "name": "Fuhang Soy Milk",
+          "query": "Fuhang Soy Milk Huashan Market Taipei",
+          "note": "Breakfast only; thick-flatbread with egg."
+        }
+      ]
+    }
+  ]
+}

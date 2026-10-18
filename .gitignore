@@ -1,0 +1,14 @@
+node_modules/
+artifacts/
+.DS_Store
+
+# Personal plans (keep the example tracked)
+plan.json
+!examples/plan.example.json
+
+# Cached private list URLs written by run.ts
+.gmaps-state.json
+
+# Compiled output, in case you ever add a build step
+dist/
+*.tsbuildinfo
