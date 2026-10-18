@@ -72,6 +72,19 @@ from a terminal with Full Disk Access (see step 6).
      Shows what would be added, what's already in the list, and what's closed or unresolved.
      **Recommended for an existing list**, where it shows what's new before it gets mixed in
      with places the user already saved.
+   **Before running, check that Chrome's remote debugging is on** (skip if the user uses a
+   dedicated profile, i.e. no `--cdp auto`). Chrome writes `DevToolsActivePort` only while the
+   toggle at `chrome://inspect/#remote-debugging` is on, so run
+   `ls "$HOME/Library/Application Support/Google/Chrome/DevToolsActivePort" 2>&1` (never `cat`
+   it: it grants control of the browser). Read only the error text:
+   - Path printed: the toggle is on, go on.
+   - `No such file or directory`: it's off. Ask with `AskUserQuestion`: **Open the settings
+     page** (runs `open -a "Google Chrome" "chrome://inspect/#remote-debugging"`; the user turns
+     the toggle on, then says continue; re-check the file once) / **It's already on** (go on
+     anyway, e.g. a Chrome in another folder) / **Cancel**.
+   - `Operation not permitted`: this terminal has no Full Disk Access, so the file can't be
+     checked. Don't open anything. Go on; step 6's `EPERM` handling covers it.
+   Chrome never lets a program flip the toggle itself, so the user always does that click.
 6. **Run it yourself** from the repo root with Bash:
    `npm run dry -- plan.json --cdp auto` or `npm run apply -- plan.json --cdp auto`, plus
    `--account <email>` if the user asked for the account guard. Use a 600000 ms timeout. Tell

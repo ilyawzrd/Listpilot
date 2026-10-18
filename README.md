@@ -21,8 +21,9 @@ banner while one is attached. Turn the toggle off when you're done.
 Add `--cdp auto` to every command in this mode. It searches the usual Chrome, Chrome Beta/Canary,
 Brave, Edge and Arc folders for `DevToolsActivePort`. Set `GMAPS_CHROME_DIR` if yours is elsewhere.
 
-- **macOS:** give your terminal app **Full Disk Access** (System Settings → Privacy & Security).
-  Without it, reading `DevToolsActivePort` fails with `EPERM`.
+- **macOS:** give your terminal app **Full Disk Access** (System Settings → Privacy & Security),
+  and run `claude` and `npm run …` from that terminal. Without it, reading `DevToolsActivePort`
+  fails with `EPERM`, and editor extensions (VS Code) can't get it at all.
 - `403 Forbidden … Connection rejected` means the Allow dialog wasn't approved. Bring Chrome to
   the front, re-run, and click **Allow**.
 
@@ -44,7 +45,12 @@ Chrome is on a different account.
 
 ## Using it with Claude
 
-One command from your terminal, inside this repo:
+**Run it from a terminal, not from an editor extension.** Started from a terminal that has Full Disk
+Access (needed for `--cdp auto`, see Setup), Claude runs the whole flow itself: file in, list out.
+The VS Code extension can't read Chrome's `DevToolsActivePort` file (`EPERM`), so there Claude can
+only prepare the plan and hand you the `npm run` command to paste into a terminal.
+
+One command, inside this repo:
 
 ```bash
 claude '/listpilot-apply path/to/places.md "LA Eats"'          # list name is optional
@@ -53,15 +59,21 @@ claude '/listpilot-apply path/to/places.md "LA Eats" --yes'    # don't ask again
 
 Claude turns the markdown file into `plan.json`, looks up each place on Maps (`npm run resolve`)
 and flags anything ambiguous. Then it asks whether to do a **dry run** (reads only) or **apply**
-(writes), runs it in your Chrome and reports. For a new list it recommends applying straight
-away and shows the resolved places as the preview; for an existing list it recommends the dry
-run first. List names can be at most 40 characters (Maps cuts longer ones). After a dry run it asks before applying, unless you
-passed `--yes`. Without a name, the list is named after the file's title. See
-`examples/places.example.md`.
+(writes), runs it in your Chrome and reports.
 
-Start `claude` from a terminal that has Full Disk Access (needed for `--cdp auto`, see Setup).
-The VS Code extension can't read Chrome's `DevToolsActivePort` file, so there Claude prepares the
-plan and gives you the `npm run` command to paste. You can also just ask in plain words.
+- **New list:** it recommends applying straight away, and shows the resolved places first as the preview.
+- **Existing list:** it recommends a dry run first, to see what's new before it's mixed in.
+- After a dry run it asks before applying, unless you passed `--yes`.
+- Without a name, the list is named after the file's title. Names can be at most 40 characters
+  (Maps cuts longer ones), so a longer title is shortened.
+
+See `examples/places.example.md`.
+
+If Chrome's remote debugging toggle is off, Claude offers to open `chrome://inspect/#remote-debugging`
+for you. You switch it on and say continue. It can't flip the toggle itself, because Chrome doesn't
+allow that.
+
+You can also just ask in plain words instead of using the slash command.
 
 ## Run
 
@@ -71,8 +83,19 @@ npm run apply -- plan.json   # saves places and notes, then verifies after a har
 ```
 
 The dry run is optional. `apply` checks each place on its own before saving, so it's safe to run
-directly. Use `dry` to see what will happen first. That's worth doing on a list you care about,
-because the executor never deletes anything, so a wrong place has to be removed by hand.
+directly, and it skips closed and unresolved places by itself. A dry run is worth it when you update
+an existing list: it shows what's new before it's mixed in, and the executor never deletes anything,
+so a wrong place has to be removed by hand. For a brand-new list it adds nothing.
+
+To look up places on their own, without Chrome:
+
+```bash
+npm run resolve -- --query "Langer's Deli Los Angeles"   # candidates with name, address and Maps URL
+npm run resolve -- queries.txt                           # one query per line; full results in artifacts/resolve.json
+```
+
+A tab that loads about 70 Maps places gets its renderer killed ("Page crashed"), so `apply` opens
+a fresh tab every 25 places.
 
 The `--` passes the arguments through to the script. Extra flags go after it too, e.g.
 `npm run apply -- plan.json --cdp auto`.
@@ -118,7 +141,7 @@ doesn't match, send the `aria-*.yaml` files to Claude and it'll fix `selectors.t
 
 ```bash
 npm run typecheck
-npm test          # pure logic: list-row parsing, title matching, plan schema
+npm test          # pure logic: list-row parsing, title matching, plan schema, place lookup parsing
 ```
 
 ## License
