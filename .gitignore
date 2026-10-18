@@ -4,6 +4,7 @@ artifacts/
 
 # Personal plans (keep the example tracked)
 plan.json
+plan.*.json
 !examples/plan.example.json
 
 # Cached private list URLs written by run.ts
