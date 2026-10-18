@@ -2,6 +2,7 @@
   "name": "listpilot",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Applies a plan.json to Google Maps saved lists via Playwright over CDP, then verifies with a hard reload.",
   "scripts": {

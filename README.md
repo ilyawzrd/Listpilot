@@ -107,3 +107,11 @@ doesn't match, send the `aria-*.yaml` files to Claude and it'll fix `selectors.t
 npm run typecheck
 npm test          # pure logic: list-row parsing, title matching, plan schema
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).
+
+listpilot is an unofficial tool, not affiliated with or endorsed by Google. It drives the Google
+Maps web UI in your own signed-in browser. Automating Maps may conflict with Google's Terms of
+Service, so use it at your own risk and on your own account.
