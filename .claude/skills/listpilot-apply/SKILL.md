@@ -52,8 +52,9 @@ Tell the user two limits up front:
 - Never delete places or lists, never change sharing. The executor has no code path for
   either.
 - Ambiguous places become **unresolved**. Never guess.
-- Always run `dry` before `apply`. Use a throwaway list (e.g. `zz-executor-test`) when
-  testing writes.
+- Run `dry` before `apply` and wait for a go-ahead. `apply` doesn't need it (it checks each
+  place itself), but nothing it writes can be undone, so the user should see the plan first.
+  Skip it only if the user asks. Use a throwaway list (e.g. `zz-executor-test`) when testing writes.
 - Single-quote Maps URLs in zsh (`!` triggers history expansion in double quotes).
 - Chrome shows an **Allow** dialog on each new CDP connection. Tell the user to expect it.
 - Selectors live only in `src/selectors.ts`. If Maps changed, re-run `npm run probe`.

@@ -104,6 +104,7 @@ npm test                                                                 # pure 
   k-th entry with the k-th same-name row for notes and verify, and drops entries that resolve to
   the same place id. "Same name" means exact title first (`titleGroup`), falling back to `sameTitle`
   prefix matching, so "Septime" and "Septime La Cave" never share a group.
-- Run `dry` before `apply` on real lists, and use throwaway lists for testing writes.
+- Run `dry` before `apply` on real lists. `apply` doesn't depend on it, but writes can't be undone.
+  Use throwaway lists for testing writes.
 - Keep all selectors in `selectors.ts`. When Maps changes, re-probe and diff the snapshots rather than guessing.
 - Don't print or commit the contents of `DevToolsActivePort`. It grants control of the signed-in browser.
