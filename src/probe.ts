@@ -75,10 +75,15 @@ try {
     for (const [i, r] of rows.entries()) console.log(`   ${i + 1}. ${r.title}${r.note ? `  — note: ${r.note}` : ""}`);
 
     // Peek at the icon menu, then the emoji picker behind "Choose icon". Cancel after (nothing is changed).
-    await S.editIconButton(page).click({ timeout: 5000 });
-    await pause(1500, 2000);
-    await dump(page, "6-icon-menu");
-    await S.chooseIconItem(page).click({ timeout: 5000 });
+    // A list without an icon has a "Choose icon" button that opens the picker directly.
+    if (await S.chooseIconButton(page).isVisible().catch(() => false)) {
+      await S.chooseIconButton(page).click({ timeout: 5000 });
+    } else {
+      await S.editIconButton(page).click({ timeout: 5000 });
+      await pause(1500, 2000);
+      await dump(page, "6-icon-menu");
+      await S.chooseIconItem(page).click({ timeout: 5000 });
+    }
     await pause(1500, 2000);
     await dump(page, "6b-emoji-picker");
     await page.keyboard.press("Escape");

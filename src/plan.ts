@@ -8,7 +8,13 @@ import { z } from "zod";
 export const PlaceSchema = z
   .object({
     name: z.string().min(1),
-    url: z.string().url().optional(),
+    url: z
+      .string()
+      .url()
+      .refine((u) => /^https:\/\/(www\.)?google\.[a-z.]+\/maps\/(place|search)\//.test(u), {
+        message: "`url` must be a Google Maps /maps/place/ (or /maps/search/) link",
+      })
+      .optional(),
     query: z.string().min(1).optional(),
     note: z.string().optional(),
   })
@@ -24,7 +30,10 @@ export const ListSchema = z.object({
 
 export const PlanSchema = z.object({
   version: z.literal(1),
-  lists: z.array(ListSchema).min(1),
+  lists: z
+    .array(ListSchema)
+    .min(1)
+    .refine((ls) => new Set(ls.map((l) => l.name)).size === ls.length, { message: "list names must be unique" }),
 });
 
 export type Place = z.infer<typeof PlaceSchema>;

@@ -13,8 +13,8 @@ the same way every time. The `listpilot-apply` skill connects the two: it turns 
 
 - `src/plan.ts`: zod schema for `plan.json` (`version: 1`, `lists[].{name, emoji?, ordered, places[].{name, url?|query?, note?}}`)
 - `src/selectors.ts`: **every** Maps UI hook. Roles, aria-labels and names only, never CSS classes.
-- `src/maps.ts`: page operations: openPlace, saveToList, createListWithPlace, openList, readList, writeNote, setListIcon, hardReload
-- `src/run.ts`: orchestration. `apply` opens each place once, resolving and saving it in the same visit, then does icon + notes in one list-view pass, then hard reload and verify. `--dry-run` resolves everything and reads the list. Writes `artifacts/report.json`, exit code 2 on verify failure
+- `src/maps.ts`: page operations: openPlace, isInList, saveToList, createListWithPlace, openList, readList, writeNote, setListIcon, hardReload
+- `src/run.ts`: orchestration. `apply` opens each place once, resolving and saving it in the same visit, then does icon + notes in one list-view pass, then hard reload and verify. `--dry-run` resolves everything and reads each place's Save-dialog checkbox (exact for chain branches). Writes `artifacts/report.json`, exit code 2 on verify failure
 - `src/probe.ts`: read-only calibration that dumps ARIA snapshots (incl. the New-list form peek, `aria-2b-new-list-form.yaml`) and `rows.json` to `artifacts/`
 - `src/connect.ts`: `--cdp auto` (reads `DevToolsActivePort`), `http://…` discovery, or `ws://…`
 - `.claude/skills/listpilot-apply/SKILL.md`: project skill. A `.md` file of places → `plan.json` → `dry` → `apply` (new list or update). Sample input: `examples/places.example.md`
@@ -28,6 +28,7 @@ npm run dry   -- plan.json --cdp auto                                    # resol
 npm run apply -- plan.json --cdp auto                                    # writes, then verifies
 npm run chrome                                                           # dedicated Chrome profile on 9222
 npm run typecheck
+npm test                                                                 # pure logic: parseRows, title matching, plan schema
 ```
 
 ## Connecting to Chrome
@@ -68,12 +69,14 @@ npm run typecheck
   several scrolls in a row bring nothing new. Loaded rows stay rendered, so `writeNote` only scrolls
   the whole list when its row isn't loaded yet.
 - Notes: click "Add note", then re-read **without scrolling** (scrolling blurs the empty box and it
-  closes), fill, press Tab. Saving on blur is verified.
+  closes), fill, then `locator.blur()`. Saving on blur is verified. **Not Tab:** it focuses the next row,
+  which selects it, and a selected row's card covers its own "Add note" button (clicks get intercepted).
 - Icon: a list without an icon has header `button "Choose icon"`. One with an icon has `button "Edit icon"`
   → `menu > menuitemradio "Choose icon" | "Clear icon"` (**never Clear**). Either way you get
   `dialog "Emoji characters palette"` with every emoji as `option "<emoji>"`, all rendered at once.
-- **Display order is newest-first.** It only matters with `ordered: true` (off by default);
-  `apply` then saves the plan backwards so rank 1 ends up on top.
+- **Display order is most-recently-modified first:** saving a place *or editing its note* moves its
+  row to the top (verified Oct 2026). It only matters with `ordered: true` (off by default); `apply`
+  then saves the plan backwards and writes notes backwards too, so rank 1 ends up on top.
 - `.gmaps-state.json` (gitignored) records every list the executor created or opened. A recorded list
   is never created again, even if the Save menu doesn't show it yet.
 

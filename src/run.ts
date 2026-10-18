@@ -4,8 +4,8 @@ import type { Page } from "playwright-core";
 import { connect } from "./connect.js";
 import { PlanSchema, type ListPlan, type Place } from "./plan.js";
 import {
-  ARTIFACTS, createListWithPlace, ensureSignedIn, hardReload, listExists, norm, openList,
-  openPlace, pause, readList, retry, sameTitle, saveToList, setListIcon, titleGroup, writeNote, type ListItem,
+  ARTIFACTS, createListWithPlace, ensureSignedIn, hardReload, isInList, listExists, norm, openList,
+  openPlace, pause, placeId, readList, retry, sameTitle, saveToList, setListIcon, titleGroup, writeNote, type ListItem,
 } from "./maps.js";
 
 const { values, positionals } = parseArgs({
@@ -21,6 +21,10 @@ const { values, positionals } = parseArgs({
 
 const planPath = positionals[0] ?? "plan.json";
 const dryRun = values["dry-run"]!;
+if (!["newest-first", "oldest-first"].includes(values["list-order"]!)) {
+  console.error(`--list-order must be newest-first or oldest-first, got "${values["list-order"]}"`);
+  process.exit(1);
+}
 const newestFirst = values["list-order"] === "newest-first";
 
 /** Lists this executor knows exist (it created them or opened them), with the list view URL once seen. */
@@ -28,8 +32,6 @@ type State = { lists: Record<string, { url?: string }> };
 type Issue = { name: string; reason: string };
 type Resolved = { name: string; url: string; title: string; note?: string };
 
-/** Google's place id from a /maps/place/ URL (…!1s0x…:0x…), used to spot two entries for one place. */
-const placeId = (url: string) => url.match(/!1s(0x[0-9a-f]+:0x[0-9a-f]+)/i)?.[1];
 /** How many resolved places share this title (branches of a chain do). */
 const countTitle = (resolved: Resolved[], title: string) => titleGroup(resolved, title, (p) => p.title).length;
 type ListReport = {
@@ -80,48 +82,47 @@ function warnShared(resolved: Resolved[], r: ListReport) {
   return shared;
 }
 
-/** Resolves everything and reads the list; writes nothing. */
+/**
+ * Resolves everything and checks each place's own Save-dialog checkbox while its page is open
+ * (exact even for chain branches, which the list view can't tell apart). Writes nothing.
+ */
 async function dryRunList(page: Page, list: ListPlan, state: State, r: ListReport): Promise<ListReport> {
-  // 1. Resolve every place.
+  // A list recorded in state exists for sure; the Save menu has failed to show a just-created one.
+  let exists: boolean | undefined = list.name in state.lists ? true : undefined;
   const resolved: Resolved[] = [];
+  const unknown: Resolved[] = []; // list exists but isn't in this place's Save menu yet
   for (const place of list.places) {
-    await resolvePlace(page, place, resolved, r);
+    const p = await resolvePlace(page, place, resolved, r);
+    if (!p) { await pause(); continue; }
+    try {
+      // Decided on the first resolved place's page, which is already open.
+      exists ??= await retry(page, "check-list", () => listExists(page, list.name));
+      const inList = exists ? await retry(page, `check-${p.title}`, () => isInList(page, list.name)) : false;
+      if (inList === null) unknown.push(p);
+      else (inList ? r.alreadyPresent : r.added).push(p.title);
+    } catch (e) {
+      r.failed.push({ name: p.title, reason: `checking the Save dialog: ${(e as Error).message}` });
+    }
     await pause();
   }
   if (!resolved.length) return r;
-  const shared = warnShared(resolved, r);
+  warnShared(resolved, r);
 
-  // 2. Does the list exist? Read its current contents if so.
-  // A list recorded in state exists for sure; the Save menu has failed to show a just-created one.
-  const cached = state.lists[list.name]?.url || undefined;
-  let exists = list.name in state.lists;
-  if (!exists) {
+  // Fallback for places whose Save menu doesn't show the list yet: match by name in the list view.
+  if (unknown.length) {
     try {
-      exists = await retry(page, "check-list", async () => {
-        await openPlace(page, { name: resolved[0]!.name, url: resolved[0]!.url });
-        return listExists(page, list.name);
-      });
-    } catch (e) {
-      r.failed.push({ name: list.name, reason: `checking whether the list exists: ${(e as Error).message}` });
-      return r;
-    }
-  }
-  let current: ListItem[] = [];
-  if (exists) {
-    try {
-      const url = await retry(page, "open-list", () => openList(page, list.name, cached));
+      const url = await retry(page, "open-list", () => openList(page, list.name, state.lists[list.name]?.url));
       state.lists[list.name] = { url };
-      current = await readList(page);
+      const current = await readList(page);
+      for (const p of unknown) {
+        (current.some((i) => sameTitle(i.title, p.title)) ? r.alreadyPresent : r.added).push(p.title);
+      }
+      r.warnings.push(`Matched by name in the list view (Save menu didn't show the list yet): ${unknown.map((p) => p.title).join(", ")}.`);
     } catch (e) {
-      // Without the current contents we can't tell what's already saved.
-      r.failed.push({ name: list.name, reason: `reading the existing list: ${(e as Error).message}` });
-      return r;
+      for (const p of unknown) r.failed.push({ name: p.title, reason: `reading the existing list: ${(e as Error).message}` });
     }
   }
-  const inList = (title: string) => current.some((i) => sameTitle(i.title, title));
-  for (const p of resolved) (inList(p.title) ? r.alreadyPresent : r.added).push(p.title);
   r.warnings.push("dry run: nothing was written; `added` lists what WOULD be added");
-  if (shared.length) r.warnings.push("dry run matches by name, so a chain branch may show as already there; apply checks each branch.");
   return r;
 }
 
@@ -141,6 +142,7 @@ async function applyList(page: Page, list: ListPlan, state: State, r: ListReport
     // No skipping by name: branches of a chain share one. Each place's own checkbox in the Save
     // dialog (saveToList → "already") says whether this exact place is in the list.
     let onPage = true;
+    let createdWithThis = false; // this place's Create click went through (it's saved by the create)
     try {
       await retry(page, `save-${p.title}`, async () => {
         if (!onPage) await openPlace(page, { name: p.name, url: p.url });
@@ -148,13 +150,16 @@ async function applyList(page: Page, list: ListPlan, state: State, r: ListReport
         // A create whose confirmation timed out may still have worked. Never create the list twice.
         if (!listReady && (await listExists(page, list.name))) listReady = true;
         if (!listReady) {
-          await createListWithPlace(page, list.name);
-          r.created = true; listReady = true;
-          // Record it right away, so even a crashed run never creates this list again.
-          state.lists[list.name] ??= {};
-          await fs.writeFile(values.state!, JSON.stringify(state, null, 2));
-        } else {
-          if ((await saveToList(page, list.name)) === "already") { r.alreadyPresent.push(p.title); return; }
+          await createListWithPlace(page, list.name, async () => {
+            // Record it as soon as Create is clicked: if the confirmation then times out, the retry
+            // takes the saveToList path (which waits out the Save-menu lag) instead of creating again.
+            r.created = true; listReady = true; createdWithThis = true;
+            state.lists[list.name] ??= {};
+            await fs.writeFile(values.state!, JSON.stringify(state, null, 2));
+          });
+        } else if ((await saveToList(page, list.name)) === "already" && !createdWithThis) {
+          r.alreadyPresent.push(p.title);
+          return;
         }
         r.added.push(p.title);
       });
@@ -199,7 +204,13 @@ async function finishList(
     const row = titleGroup(before, p.title, (i) => i.title, titles)[nthOfTitle(p)];
     return !!row && norm(row.note).includes(norm(p.note!));
   };
-  for (const p of resolved.filter((x) => x.note && !hasNote(x))) {
+  // Editing a note moves its row to the top, so a ranked list writes notes from the bottom rank up.
+  const toWrite = resolved.filter((x) => x.note && !hasNote(x));
+  if (list.ordered && newestFirst) toWrite.reverse();
+  if (list.ordered && toWrite.length && toWrite.length < resolved.length) {
+    r.warnings.push("Only some places get a note written; those rows move to the top, so the ranking may be off.");
+  }
+  for (const p of toWrite) {
     try {
       const res = await retry(page, `note-${p.title}`, () => writeNote(page, p.title, p.note!, nthOfTitle(p), titles));
       if (res === "written") r.notesWritten.push(p.title);
@@ -212,7 +223,6 @@ async function finishList(
   await retry(page, "verify-reload", () => hardReload(page));
   const observed = await readList(page);
   const rowFor = (p: Resolved) => titleGroup(observed, p.title, (i) => i.title, titles)[nthOfTitle(p)];
-  const find = (t: string) => observed.findIndex((i) => sameTitle(i.title, t));
   const missing = resolved.filter((p) => !rowFor(p)).map((p) => p.title);
   const notesMissing = resolved
     .filter((p) => p.note && rowFor(p))
@@ -220,7 +230,8 @@ async function finishList(
     .map((p) => p.title);
   let orderOk: boolean | null = null;
   if (list.ordered && r.created) {
-    const positions = resolved.map((p) => find(p.title)).filter((i) => i >= 0);
+    // Same pairing as above, so chain branches get distinct rows instead of all matching the first.
+    const positions = resolved.map((p) => rowFor(p)).filter((x) => !!x).map((x) => observed.indexOf(x));
     orderOk = positions.every((v, i, a) => i === 0 || v > a[i - 1]!);
     if (!orderOk) r.warnings.push("Display order doesn't match the plan — try the opposite --list-order.");
   }

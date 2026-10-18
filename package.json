@@ -9,7 +9,8 @@
     "apply": "tsx src/run.ts",
     "dry": "tsx src/run.ts --dry-run",
     "probe": "tsx src/probe.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/*.test.ts"
   },
   "dependencies": {
     "playwright-core": "^1.55.0",

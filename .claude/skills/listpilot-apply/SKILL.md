@@ -20,7 +20,8 @@ A path to a `.md` file with places: headings, bullets or free text. See `example
    for an emoji only if the user mentioned one.
 3. **Resolve every place to a `/maps/place/` URL** and put it in `url`. Use `query` only when
    the search will land on one unambiguous place. Anything ambiguous goes in a list for the
-   user. Never guess a match.
+   user. Never guess a match. To find URLs without Chrome, use the `/search?tbm=map` fetch
+   described under "Resolving places without Chrome" in `CLAUDE.md`.
    - **Chains: add every location.** If a place has several branches and the document doesn't
      single out one ("this address", a street address, "the award-winning one"), add one entry
      per branch in the relevant city, each with its own address `query` or URL. If the
@@ -37,11 +38,14 @@ A path to a `.md` file with places: headings, bullets or free text. See `example
 
 ## New list vs. update
 
-If a list with that name already exists, this is an **update**: places already in it are
-skipped, new places are added and new notes are appended (` · `, never overwritten).
+If a list with that name already exists, this is an **update**: each place's own Save-dialog
+checkbox decides whether it's already in the list (so chain branches are checked one by one),
+new places are added, and new notes are appended (` · `, never overwritten).
 Tell the user two limits up front:
 
 - Places removed from the `.md` are **not** removed from Maps.
+- With `ordered: true`, ranking is exact only for a list the executor creates. In an existing
+  list, new places are ranked among themselves and existing ones keep their position.
 
 ## Rules
 

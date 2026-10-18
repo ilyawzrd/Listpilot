@@ -4,8 +4,8 @@ import type { Locator, Page } from "playwright-core";
  * Every Google Maps UI hook lives here, and nowhere else.
  *
  * Maps' CSS classes are obfuscated and rotate, so these use roles, aria-labels and visible
- * text. Everything here matches probe snapshots from Oct 2026, but the write actions themselves
- * (Create, emoji click, note blur) haven't run yet. Re-run `npm run probe` whenever Maps changes.
+ * text. Everything here matches probe snapshots from Oct 2026, and the write actions (Create, emoji
+ * click, note blur) have run end to end with verify passing. Re-run `npm run probe` whenever Maps changes.
  *
  * English UI is assumed. If your Google account shows Maps in Spanish/Russian, either switch
  * it to English (?hl=en is added to every URL we open) or translate the regexes below.

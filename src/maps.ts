@@ -24,7 +24,10 @@ export const sameName = (a: string, b: string) => {
   return !!x && !!y && (x.includes(y) || y.includes(x));
 };
 
-export const withHl = (url: string) => {
+/** Google's place id from a /maps/place/ URL (…!1s0x…:0x…), used to spot two entries for one place. */
+export const placeId = (url: string) => url.match(/!1s(0x[0-9a-f]+:0x[0-9a-f]+)/i)?.[1];
+
+export const withHl =(url: string) => {
   const u = new URL(url);
   u.searchParams.set("hl", "en");
   return u.toString();
@@ -125,12 +128,30 @@ export async function listExists(page: Page, listName: string): Promise<boolean>
   return exists;
 }
 
-/** Creates the list from the current place's Save dialog, which also saves this place into it. */
-export async function createListWithPlace(page: Page, listName: string) {
+/**
+ * Is the current place in the list? Read-only: reads its checkbox in the Save dialog.
+ * null when the list isn't in the menu (yet: a just-created list shows up late).
+ */
+export async function isInList(page: Page, listName: string): Promise<boolean | null> {
+  const dialog = await openSaveDialog(page);
+  const opt = S.listOption(dialog, listName);
+  const visible = await opt.isVisible({ timeout: 2500 }).catch(() => false);
+  const checked = visible ? await isChecked(opt) : null;
+  await closeDialog(page);
+  return checked;
+}
+
+/**
+ * Creates the list from the current place's Save dialog, which also saves this place into it.
+ * `onSubmitted` runs right after the Create click, before any wait that can time out, so the
+ * caller can record the list before a retry gets the chance to create it again.
+ */
+export async function createListWithPlace(page: Page, listName: string, onSubmitted: () => Promise<void>) {
   const dialog = await openSaveDialog(page);
   await S.newListOption(dialog).click();
   await S.newListNameInput(page).fill(listName);
   await S.newListCreateButton(page).click({ timeout: 8000 });
+  await onSubmitted();
   await S.newListDialog(page).waitFor({ state: "hidden", timeout: 8000 }); // closes once created
   await pause(1200, 2000);
 }
@@ -341,7 +362,9 @@ export async function writeNote(
   if (existing && norm(existing).includes(norm(note))) return "unchanged";
   const next = existing ? `${existing} · ${note}` : note;
   await ctrl.fill(next, { timeout: 5000 });
-  await page.keyboard.press("Tab"); // inline field; Maps saves on blur
+  // Inline field; Maps saves on blur. Not Tab: that focuses the next row, which selects it, and a
+  // selected row's card covers its own "Add note" button, so the next note's click is intercepted.
+  await ctrl.blur();
   await pause(1200, 1800);
   return "written";
 }
