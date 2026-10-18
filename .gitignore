@@ -7,6 +7,12 @@ plan.json
 plan.*.json
 !examples/plan.example.json
 
+# Research reports and places files from the listpilot-research skill
+research/
+# Written by the deep-research skill that listpilot-research uses by default
+research_notes/
+reports/
+
 # Cached private list URLs written by run.ts
 .gmaps-state.json
 

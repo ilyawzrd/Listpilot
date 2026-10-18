@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "list": "Lisbon Bakeries",
+  "places": [
+    {
+      "section": "Bakeries",
+      "name": "Manteigaria",
+      "area": "all branches",
+      "note": "Pastel de nata straight from the oven; eat it standing at the counter.",
+      "details": "The custard tart specialist locals compare everyone else against. A bell rings when a fresh batch comes out.\n\nCaveat: the Chiado branch gets tour groups around noon, so go early or use another branch.",
+      "sources": [
+        { "title": "Time Out Lisbon: best pastéis de nata", "url": "https://www.timeout.com/lisbon/restaurants/best-pasteis-de-nata-in-lisbon" }
+      ]
+    },
+    {
+      "section": "Bakeries",
+      "name": "Padaria do Bairro",
+      "area": "Graça",
+      "note": "Sourdough sells out by noon; closed Mondays.",
+      "details": "Neighbourhood sourdough bakery recommended by residents on r/lisbon for its country loaf and cardamom buns.",
+      "sources": [
+        { "title": "r/lisbon: best bread in town (search snippet)", "url": "https://www.reddit.com/r/lisbon/" }
+      ]
+    },
+    {
+      "section": "Coffee",
+      "name": "Copenhagen Coffee Lab",
+      "area": "Príncipe Real",
+      "note": "Flat white and a cardamom bun; laptop-friendly before 11.",
+      "details": "Nordic-style roaster with several cafés; the Príncipe Real one has the most seating.",
+      "sources": []
+    }
+  ],
+  "excluded": [
+    {
+      "section": "Bakeries",
+      "name": "Fábrica da Nata",
+      "area": "Restauradores",
+      "note": "",
+      "details": "Big branded custard-tart shop on the main tourist axis.",
+      "reason": "trap: on a main tourist square; locals call it overpriced for what it is.",
+      "sources": []
+    }
+  ]
+}

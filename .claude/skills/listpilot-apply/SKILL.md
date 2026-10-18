@@ -1,12 +1,15 @@
 ---
 name: listpilot-apply
-description: Use when the user wants places from a .md file (a research report, a chat answer, a list of recommendations) added to a Google Maps saved list, or an existing list updated, with notes. Builds plan.json and applies it with this repo's deterministic executor.
-argument-hint: <file.md> ["List name"] [--yes]
+description: Use when the user wants places from a .md file (a research report, a chat answer, a list of recommendations, or a listpilot-research places file) added to a Google Maps saved list, or an existing list updated, with notes. Builds plan.json, then hands it to listpilot-run to apply with this repo's deterministic executor.
+argument-hint: <file.md> ["List name"] [--yes] [--account <email>]
+model: sonnet
+effort: medium
 ---
 
 # Markdown → Google Maps list
 
-You do the judgment work. The executor (`npm run dry` / `npm run apply`) only clicks.
+You do the judgment work: parse, resolve, build `plan.json`. Then `listpilot-run` (on a smaller
+model) runs the executor (`npm run dry` / `npm run apply`), which only clicks.
 
 ## Input
 
@@ -15,10 +18,11 @@ You do the judgment work. The executor (`npm run dry` / `npm run apply`) only cl
 - **First token:** path to a `.md` file with places (headings, bullets or free text). See
   `examples/places.example.md`. If it's missing, ask for it.
 - **Optional list name** (quoted or the remaining words): overrides the file's title.
-- **Optional `--yes`:** after a dry run, go on to apply without asking again.
+- **Optional `--yes`:** after a dry run, go on to apply without asking again (passed to `listpilot-run`).
+- **Optional `--account <email>`:** the account guard (passed to `listpilot-run`).
 
-The whole flow runs in this session, including the Chrome steps. That needs a session started
-from a terminal with Full Disk Access (see step 6).
+The whole flow runs in this session, including the Chrome steps in `listpilot-run`. Those need a
+session started from a terminal with Full Disk Access.
 
 ## Flow
 
@@ -32,6 +36,10 @@ from a terminal with Full Disk Access (see step 6).
      like "great atmosphere" or "authentic".
    - One or two sentences by default, never more than about six.
    - No source markers or rank numbers unless the user asked for a ranked list.
+   **A `*.places.md` from `listpilot-research`** is already in this shape: `# ` is the list name,
+   `## ` sections are categories, and each bullet is `**Name** (area): note`. Use its notes as
+   written, put the `(area)` into the resolve query, and treat `(all branches)` as a chain
+   (step 3: add every location).
 2. **List name.** Use the name from the arguments if given. Otherwise use the file's
    top-level title, or ask the user if there is none. Ask for an emoji only if the user
    mentioned one. **At most 40 characters:** Maps cuts longer names, and the executor then
@@ -56,60 +64,23 @@ from a terminal with Full Disk Access (see step 6).
    to `plan.<YYYYMMDD-HHMM>.json` first (also gitignored). The schema is in `src/plan.ts` and a
    sample is in `examples/plan.example.json`. Validate it with
    `npx tsx -e "import {PlanSchema} from './src/plan.ts'; import fs from 'fs'; PlanSchema.parse(JSON.parse(fs.readFileSync('plan.json','utf8')))"`.
-5. **Choose a mode.** First tell the user, in a few lines: the list name, whether it's new or
-   already exists (it exists if `.gmaps-state.json` has it, or if the user says so), the
-   number of places and chain branches, and the unresolved places with what was found for
-   each. For a **new** list, also show every resolved place as `Maps name — address`
-   (compact, one per line, grouped as in the document). That is the preview: a dry run of a
-   new list adds nothing to it. Then ask with `AskUserQuestion`, putting the recommended
-   option first:
-   - **Apply:** creates or updates the list, saves places, appends notes, then hard-reloads
-     and verifies. Writes can't be undone (nothing is ever deleted, but a wrong place must be
-     removed by hand). **Recommended for a new list.** `apply` skips closed and unresolved
-     places on its own and never saves a place twice, so a dry run first only costs time
-     (~3 s per place).
-   - **Dry run:** opens every place in your Chrome and reads its Save dialog. Writes nothing.
-     Shows what would be added, what's already in the list, and what's closed or unresolved.
-     **Recommended for an existing list**, where it shows what's new before it gets mixed in
-     with places the user already saved.
-   **Before running, check that Chrome's remote debugging is on** (skip if the user uses a
-   dedicated profile, i.e. no `--cdp auto`). Chrome writes `DevToolsActivePort` only while the
-   toggle at `chrome://inspect/#remote-debugging` is on, so run
-   `ls "$HOME/Library/Application Support/Google/Chrome/DevToolsActivePort" 2>&1` (never `cat`
-   it: it grants control of the browser). Read only the error text:
-   - Path printed: the toggle is on, go on.
-   - `No such file or directory`: it's off. Ask with `AskUserQuestion`: **Open the settings
-     page** (runs `open -a "Google Chrome" "chrome://inspect/#remote-debugging"`; the user turns
-     the toggle on, then says continue; re-check the file once) / **It's already on** (go on
-     anyway, e.g. a Chrome in another folder) / **Cancel**.
-   - `Operation not permitted`: this terminal has no Full Disk Access, so the file can't be
-     checked. Don't open anything. Go on; step 6's `EPERM` handling covers it.
-   Chrome never lets a program flip the toggle itself, so the user always does that click.
-6. **Run it yourself** from the repo root with Bash:
-   `npm run dry -- plan.json --cdp auto` or `npm run apply -- plan.json --cdp auto`, plus
-   `--account <email>` if the user asked for the account guard. Use a 600000 ms timeout. Tell
-   the user just before to click **Allow** in Chrome. Expect roughly 5–10 s per place.
-   - **`EPERM` on `DevToolsActivePort`:** this terminal (or the VS Code extension) has no
-     Full Disk Access. Say so and give the exact command for the user to run in a terminal
-     that has it, then continue from step 7 once they say it's done.
-7. **Report** from `artifacts/report.json`: added / already there / notes / unresolved /
-   failed, and `verify` after apply. Exit code 2 means verification found missing places or
-   notes. For a failure, read the matching `artifacts/*-fail-*.yaml` (never paste it: it
-   contains the account email).
-   - **After a dry run:** remove places reported as permanently closed from `plan.json` and
-     say which. If several places failed with "Page crashed", say the Chrome tab crashed (not
-     the places) and keep them in the plan. Then, unless `--yes` was given, ask with
-     `AskUserQuestion`: **Apply now** / **Stop** (Stop leaves `plan.json` for a later
-     `npm run apply`). With `--yes`, run apply straight away.
-   - **After apply:** list anything missing from `verify` and offer to retry just those
-     (a plan with only those places; already-saved ones are skipped anyway).
+5. **Write the handoff** to `artifacts/plan-summary.md`, a few plain lines that
+   `listpilot-run` shows as is: the list name, whether it's new or already exists (it exists if
+   `.gmaps-state.json` has it, or if the user says so), the number of places and chain branches,
+   and each unresolved place with what was found for it. For a **new** list, also list every
+   resolved place as `Maps name — address` (compact, one per line, grouped as in the document).
+   That's the preview, since a dry run of a new list adds nothing. For an **update**, add the
+   two limits from "New list vs. update" below.
+6. **Hand off to `listpilot-run`.** Invoke the `listpilot-run` skill with the plan path, plus
+   `--yes` and `--account <email>` if they were given. It runs on a smaller model and does the
+   rest: the Apply / Dry run question, Chrome checks, the run and the report.
 
 ## New list vs. update
 
 If a list with that name already exists, this is an **update**: each place's own Save-dialog
 checkbox decides whether it's already in the list (so chain branches are checked one by one),
-new places are added, and new notes are appended (` · `, never overwritten).
-Tell the user two limits up front:
+new places are added, and new notes are appended (` · `, never overwritten). The summary
+states two limits:
 
 - Places removed from the `.md` are **not** removed from Maps.
 - With `ordered: true`, ranking is exact only for a list the executor creates. In an existing
@@ -120,12 +91,9 @@ Tell the user two limits up front:
 - Never delete places or lists, never change sharing. The executor has no code path for
   either.
 - Ambiguous places become **unresolved**. Never guess.
-- Never run `apply` without the user choosing it (step 5 or 7) or passing `--yes`. `apply`
-  doesn't need a dry run first (it checks each place itself), but nothing it writes can be
-  undone.
-- `--yes` only skips the question after a dry run. The mode question in step 5 is always asked. Use a throwaway list (e.g. `zz-executor-test`) when testing writes.
+- Never run `npm run dry` / `npm run apply` from this skill. That's `listpilot-run`'s job, and it
+  always asks Apply / Dry run first. Use a throwaway list (e.g. `zz-executor-test`) when testing writes.
 - Single-quote Maps URLs in zsh (`!` triggers history expansion in double quotes).
-- Chrome shows an **Allow** dialog on each new CDP connection. Tell the user to expect it.
 - If the user has several Google accounts in Chrome, suggest `--account <their email>` (or
   `GMAPS_ACCOUNT`). The run then stops before writing anything if Chrome is on the wrong account.
 - Selectors live only in `src/selectors.ts`. If Maps changed, re-run `npm run probe`.

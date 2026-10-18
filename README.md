@@ -1,16 +1,22 @@
 # listpilot
 
-Applies a `plan.json` to Google Maps saved lists through Playwright attached to Chrome over CDP:
-creates lists (with emoji), saves places (ranked only if `ordered: true`), writes per-place notes, then hard-reloads
-and diffs the list against the plan.
+Puts places on a Google Maps saved list, with notes. You can start from a question ("natural wine bars
+in Gràcia, no tourist traps") or from an `.md` file you already have.
 
-Claude does the judgment work (parse the source, ask for list names, resolve each place to a Maps
-URL). This executor does the clicking, deterministically.
+1. **Research** (optional): Claude researches local press, guides and Reddit, filters out tourist traps,
+   viral spots and closed places, and opens a **review page**. There you tick places and edit notes.
+2. **Resolve**: Claude looks each place up on Google Maps and writes a `plan.json`.
+3. **Apply**: a deterministic executor (Playwright attached to your Chrome over CDP) creates or updates
+   the list, saves places, writes notes, then hard-reloads and checks the list against the plan.
+
+Claude does the judgment work; the executor only clicks, the same way every time.
 
 ## Setup (once)
 
+You need macOS, Google Chrome, Node 18+ and [Claude Code](https://claude.com/claude-code) (logged in).
+
 ```bash
-npm install
+npm install       # ./start.sh also does this on first run
 ```
 
 Then connect to Chrome in one of two ways.
@@ -45,6 +51,41 @@ Chrome is on a different account.
 
 ## Using it with Claude
 
+### Quick start
+
+```bash
+./start.sh        # or: npm start
+```
+
+It checks your setup (Claude Code, Node, dependencies, Chrome), then asks what you want to do:
+**research places** or **use an .md file you already have**. Before the questions, it lists
+each one with what it expects and an example. A research session looks like this:
+
+```
+1/5 What (kind of place + preferences, no city): natural wine bars with food, open late
+2/5 Where (city, or neighbourhood + city): Gràcia, Barcelona
+3/5 Google Maps list name (new or existing) [Gràcia natural wine bars with]: BCN Wine
+4/5 Depth: deep (several minutes, more places) or quick? [deep]
+5/5 Model: opus (best research) or sonnet (cheaper)? [opus]
+```
+
+If What looks like it includes a place ("bakeries in Lisbon"), it offers to move the place to Where.
+
+Claude Code then opens and researches. When it's done, a **review page** opens in your browser.
+Every place has a checkbox and an editable note (the note that goes to Maps). Click a place
+to see why it's in, what to order and the sources. Places the research filtered out (tourist trap,
+viral, closed, thin evidence) are in a collapsed block at the bottom, and you can tick them back in.
+Press **Continue**, and Claude picks up your choices by itself.
+
+Claude then looks each place up on Maps and checks that Chrome's remote debugging is on. If it's off,
+Claude opens `chrome://inspect/#remote-debugging` for you to switch on. It asks **Apply** or
+**Dry run** before it touches your list. Run it from a terminal with Full Disk Access (see Setup).
+
+With an .md file instead, it asks for the path (you can drag the file in) and an optional list name,
+then goes straight to the Maps lookup. There's no review page in that mode.
+
+### Step by step
+
 **Run it from a terminal, not from an editor extension.** Started from a terminal that has Full Disk
 Access (needed for `--cdp auto`, see Setup), Claude runs the whole flow itself: file in, list out.
 The VS Code extension can't read Chrome's `DevToolsActivePort` file (`EPERM`), so there Claude can
@@ -55,23 +96,47 @@ One command, inside this repo:
 ```bash
 claude '/listpilot-apply path/to/places.md "LA Eats"'          # list name is optional
 claude '/listpilot-apply path/to/places.md "LA Eats" --yes'    # don't ask again after the dry run
+claude '/listpilot-research bakeries in Lisbon "Lisbon Bakeries"'  # research first, then the same flow
 ```
 
-Claude turns the markdown file into `plan.json`, looks up each place on Maps (`npm run resolve`)
-and flags anything ambiguous. Then it asks whether to do a **dry run** (reads only) or **apply**
-(writes), runs it in your Chrome and reports.
+**From an .md file.** Claude turns the file into `plan.json` (see `examples/places.example.md`), looks
+up each place on Maps (`npm run resolve`) and flags anything ambiguous. Then it asks whether to
+**apply** (writes) or do a **dry run** (reads only), runs it in your Chrome and reports.
 
-- **New list:** it recommends applying straight away, and shows the resolved places first as the preview.
-- **Existing list:** it recommends a dry run first, to see what's new before it's mixed in.
+- **Apply is recommended for new and existing lists.** It checks each place's own Save-dialog
+  checkbox and never saves a place twice. For a new list it shows the resolved places first.
+- **Dry run** is there if you want to see what's new first. It writes nothing.
 - After a dry run it asks before applying, unless you passed `--yes`.
 - Without a name, the list is named after the file's title. Names can be at most 40 characters
   (Maps cuts longer ones), so a longer title is shortened.
+- If Chrome's remote debugging toggle is off, Claude offers to open `chrome://inspect/#remote-debugging`.
+  You switch it on and say continue; Chrome doesn't let a program flip it.
 
-See `examples/places.example.md`.
+**Research first (optional).** `/listpilot-research <what> in <where>` runs the `deep-research`
+skill (parallel research agents, similar to desktop Research mode; takes minutes). It covers local
+press, guides and Reddit (from search snippets, since Reddit blocks direct fetches). Add `--quick`
+for a single faster pass that finds fewer places. It then drops tourist traps,
+viral TikTok spots and closed places, and keeps places with at least two independent sources. It
+writes the result to `research/<slug>.json` (gitignored; schema in `src/review.ts`, sample in
+`examples/research.example.json`). It opens the review page with `npm run review -- research/<slug>.json`,
+which serves it on 127.0.0.1 only while you review. Your choices become
+`research/<slug>.places.md`, which goes into `/listpilot-apply`.
 
-If Chrome's remote debugging toggle is off, Claude offers to open `chrome://inspect/#remote-debugging`
-for you. You switch it on and say continue. It can't flip the toggle itself, because Chrome doesn't
-allow that.
+**Models and effort.** Everything runs at **medium** effort.
+
+| Step | Model |
+|---|---|
+| Research (`listpilot-research`) | Opus or Sonnet, chosen in `start.sh` (otherwise your session model) |
+| Parse + look up places (`listpilot-apply`) | Sonnet |
+| Chrome part (`listpilot-run`) | Haiku: runs the executor, asks fixed questions, reports |
+
+If you finish a run in your own terminal, `/listpilot-run --report` reads the result on Haiku.
+
+**Cleanup.** After a fully verified apply, `npm run clean` runs by itself. It removes `artifacts/`,
+every untracked `plan*.json`, everything in `research/` except the `.places.md` files, and
+deep-research's `reports/` and `research_notes/`. What stays is each
+list's final places file, which you can re-run with `/listpilot-apply`, plus git-tracked files and the
+real lists in `.gmaps-state.json`. Run `npm run clean -- --dry-run` to see what it would remove.
 
 You can also just ask in plain words instead of using the slash command.
 
@@ -83,9 +148,16 @@ npm run apply -- plan.json   # saves places and notes, then verifies after a har
 ```
 
 The dry run is optional. `apply` checks each place on its own before saving, so it's safe to run
-directly, and it skips closed and unresolved places by itself. A dry run is worth it when you update
-an existing list: it shows what's new before it's mixed in, and the executor never deletes anything,
-so a wrong place has to be removed by hand. For a brand-new list it adds nothing.
+directly on new and existing lists, and it skips closed and unresolved places by itself. Use a dry
+run if you want to see what's new in an existing list first. The executor never deletes anything,
+so a wrong place has to be removed by hand.
+
+Other commands:
+
+```bash
+npm run review -- research/<slug>.json   # reopen the review page for a research result
+npm run clean -- --dry-run               # show what cleanup would remove (drop --dry-run to remove it)
+```
 
 To look up places on their own, without Chrome:
 
@@ -141,7 +213,7 @@ doesn't match, send the `aria-*.yaml` files to Claude and it'll fix `selectors.t
 
 ```bash
 npm run typecheck
-npm test          # pure logic: list-row parsing, title matching, plan schema, place lookup parsing
+npm test          # list-row parsing, title matching, plan schema, place lookup parsing, review page + server, cleanup
 ```
 
 ## License

@@ -12,7 +12,10 @@
     "probe": "tsx src/probe.ts",
     "resolve": "tsx src/resolve.ts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/*.test.ts"
+    "test": "tsx --test src/*.test.ts",
+    "start": "bash start.sh",
+    "review": "tsx src/review.ts",
+    "clean": "tsx src/clean.ts"
   },
   "dependencies": {
     "playwright-core": "^1.55.0",
