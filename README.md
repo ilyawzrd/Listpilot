@@ -38,6 +38,10 @@ npm run chrome            # opens a dedicated Chrome profile on 127.0.0.1:9222
 Sign into Google in that window. The profile keeps the session, so you only do this once.
 Leave `--cdp auto` off in this mode.
 
+**Signed in to several Google accounts?** Add `--account you@gmail.com` (or
+`export GMAPS_ACCOUNT=you@gmail.com`). `dry` and `apply` then stop before writing anything if
+Chrome is on a different account.
+
 ## Using it with Claude
 
 In Claude Code, inside this repo:

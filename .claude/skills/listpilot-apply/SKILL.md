@@ -16,6 +16,13 @@ A path to a `.md` file with places: headings, bullets or free text. See `example
 1. **Parse the file** into places. Text attached to a place (the rest of its bullet or
    paragraph) becomes its `note`, trimmed to one or two short sentences. Order doesn't matter:
    leave `ordered` out (it defaults to false) unless the user asks for a ranked list.
+   **Note style** (Maps shows notes in a narrow mobile sheet):
+   - Plain text only: no `**bold**`, headings or links. Maps shows markdown as literal characters.
+   - Don't repeat the place name, city or address. The row already shows them.
+   - Concrete, usable info only: what to order, when to go, book ahead, closing day. No filler
+     like "great atmosphere" or "authentic".
+   - One or two sentences by default, never more than about six.
+   - No source markers or rank numbers unless the user asked for a ranked list.
 2. **List name.** Use the file's top-level title if it has one, otherwise ask the user. Ask
    for an emoji only if the user mentioned one.
 3. **Resolve every place to a `/maps/place/` URL** and put it in `url`. Use `query` only when
@@ -57,4 +64,6 @@ Tell the user two limits up front:
   Skip it only if the user asks. Use a throwaway list (e.g. `zz-executor-test`) when testing writes.
 - Single-quote Maps URLs in zsh (`!` triggers history expansion in double quotes).
 - Chrome shows an **Allow** dialog on each new CDP connection. Tell the user to expect it.
+- If the user has several Google accounts in Chrome, suggest `--account <their email>` (or
+  `GMAPS_ACCOUNT`). The run then stops before writing anything if Chrome is on the wrong account.
 - Selectors live only in `src/selectors.ts`. If Maps changed, re-run `npm run probe`.

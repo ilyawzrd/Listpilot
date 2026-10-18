@@ -16,6 +16,8 @@ const { values, positionals } = parseArgs({
     // How Maps displays a list. Calibrate once with `npm run probe` and flip if verify reports order drift.
     "list-order": { type: "string", default: "newest-first" },
     state: { type: "string", default: ".gmaps-state.json" },
+    // Expected Google account email; the run stops before any write on a mismatch.
+    account: { type: "string", default: process.env.GMAPS_ACCOUNT },
   },
 });
 
@@ -251,7 +253,7 @@ async function main() {
 
   const reports: ListReport[] = [];
   try {
-    await ensureSignedIn(page);
+    await ensureSignedIn(page, values.account);
     for (const list of plan.lists) {
       // A crash in one list must not take the report (or the other lists) down with it.
       reports.push(await runList(page, list, state).catch((e: Error) => ({

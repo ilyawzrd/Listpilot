@@ -14,6 +14,8 @@ export const S = {
   // ── session ────────────────────────────────────────────────────────────────
   consentRejectAll: (p: Page) => p.getByRole("button", { name: /^Reject all$/i }),
   signInLink: (p: Page) => p.getByRole("link", { name: /^Sign in$/i }),
+  /** Verified: button "Google Account: <Name> (<email>)". */
+  accountButton: (p: Page) => p.getByRole("button", { name: /^Google Account: / }).first(),
 
   // ── place page ─────────────────────────────────────────────────────────────
   /** The place's own h1. A place URL opened from a list also shows the list's h1 in a separate

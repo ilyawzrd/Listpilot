@@ -41,6 +41,9 @@ npm test                                                                 # pure 
   - Chrome shows an **Allow** dialog on every new CDP connection, so the first action of each run
     waits for the user to click it.
 - **Dedicated profile**: `npm run chrome` starts one on 9222 with normal HTTP discovery. Drop `--cdp auto`.
+- **Account guard** (optional): `--account you@gmail.com` or `GMAPS_ACCOUNT` makes `dry`/`apply` stop
+  before anything else if the signed-in account (`button "Google Account: <Name> (<email>)"`) doesn't match.
+  The error never prints the account it found.
 - **zsh: always single-quote Maps URLs.** Inside double quotes, `!4m6!3m5…` triggers history expansion.
 - Node + npm, not pnpm. The Maps UI is assumed to be English; every URL gets `hl=en`.
 

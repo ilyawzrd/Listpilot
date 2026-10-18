@@ -67,12 +67,23 @@ export async function dismissConsent(page: Page) {
   }
 }
 
-export async function ensureSignedIn(page: Page) {
+/** With `account`, also checks the signed-in account before anything is written. */
+export async function ensureSignedIn(page: Page, account?: string) {
   await page.goto(withHl(MAPS), { waitUntil: "domcontentloaded" });
   await dismissConsent(page);
   await pause();
   if (await S.signInLink(page).isVisible({ timeout: 3000 }).catch(() => false)) {
     throw new Error("NOT_SIGNED_IN: sign into Google in the automation Chrome window, then re-run.");
+  }
+  if (!account) return;
+  const label = await S.accountButton(page).getAttribute("aria-label", { timeout: 10_000 }).catch(() => null);
+  // The label holds the signed-in email; it's never printed.
+  if (!label?.toLowerCase().includes(account.trim().toLowerCase())) {
+    throw new Error(
+      label
+        ? "WRONG_ACCOUNT: Chrome is signed in to a different Google account than --account. Switch accounts in Chrome, then re-run."
+        : "WRONG_ACCOUNT: couldn't read the signed-in Google account, so nothing was written.",
+    );
   }
 }
 
