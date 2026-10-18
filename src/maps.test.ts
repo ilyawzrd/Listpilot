@@ -80,4 +80,6 @@ test("PlanSchema validates places and lists", () => {
   bad([{ name: "L", places: [{ name: "A" }] }]); // neither url nor query
   bad([{ name: "L", places: [{ name: "A", url: "https://example.com/maps/place/A" }] }]);
   bad([{ name: "L", places: [place] }, { name: "L", places: [place] }]); // duplicate list name
+  bad([{ name: "Where to Eat & Drink in Los Angeles (October 2026)", places: [place] }]); // > 40 chars
+  PlanSchema.parse({ version: 1, lists: [{ name: "x".repeat(40), places: [place] }] });
 });

@@ -44,15 +44,24 @@ Chrome is on a different account.
 
 ## Using it with Claude
 
-In Claude Code, inside this repo:
+One command from your terminal, inside this repo:
 
-```
-/listpilot-apply path/to/places.md
+```bash
+claude '/listpilot-apply path/to/places.md "LA Eats"'          # list name is optional
+claude '/listpilot-apply path/to/places.md "LA Eats" --yes'    # don't ask again after the dry run
 ```
 
-You can also just ask in plain words. Claude turns the markdown file into `plan.json`, looks up
-each place on Maps, flags anything ambiguous, shows you a dry run, and applies after your go-ahead.
-It names the list after the file's title unless you give a name. See `examples/places.example.md`.
+Claude turns the markdown file into `plan.json`, looks up each place on Maps (`npm run resolve`)
+and flags anything ambiguous. Then it asks whether to do a **dry run** (reads only) or **apply**
+(writes), runs it in your Chrome and reports. For a new list it recommends applying straight
+away and shows the resolved places as the preview; for an existing list it recommends the dry
+run first. List names can be at most 40 characters (Maps cuts longer ones). After a dry run it asks before applying, unless you
+passed `--yes`. Without a name, the list is named after the file's title. See
+`examples/places.example.md`.
+
+Start `claude` from a terminal that has Full Disk Access (needed for `--cdp auto`, see Setup).
+The VS Code extension can't read Chrome's `DevToolsActivePort` file, so there Claude prepares the
+plan and gives you the `npm run` command to paste. You can also just ask in plain words.
 
 ## Run
 

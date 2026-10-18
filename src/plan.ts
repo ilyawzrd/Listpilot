@@ -20,8 +20,11 @@ export const PlaceSchema = z
   })
   .refine((p) => p.url || p.query, { message: "each place needs `url` or `query`" });
 
+/** Maps cuts list names at 40 characters, and the executor then can't find the list it created. */
+export const MAX_LIST_NAME = 40;
+
 export const ListSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(MAX_LIST_NAME, `Maps cuts list names at ${MAX_LIST_NAME} characters; shorten it`),
   emoji: z.string().optional(),
   /** Opt-in: save strictly in array order (index 0 = rank 1) and verify the display order. */
   ordered: z.boolean().default(false),

@@ -10,6 +10,7 @@
     "apply": "tsx src/run.ts",
     "dry": "tsx src/run.ts --dry-run",
     "probe": "tsx src/probe.ts",
+    "resolve": "tsx src/resolve.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/*.test.ts"
   },

@@ -16,6 +16,7 @@ the same way every time. The `listpilot-apply` skill connects the two: it turns 
 - `src/maps.ts`: page operations: openPlace, isInList, saveToList, createListWithPlace, openList, readList, writeNote, setListIcon, hardReload
 - `src/run.ts`: orchestration. `apply` opens each place once, resolving and saving it in the same visit, then does icon + notes in one list-view pass, then hard reload and verify. `--dry-run` resolves everything and reads each place's Save-dialog checkbox (exact for chain branches). Writes `artifacts/report.json`, exit code 2 on verify failure
 - `src/probe.ts`: read-only calibration that dumps ARIA snapshots (incl. the New-list form peek, `aria-2b-new-list-form.yaml`) and `rows.json` to `artifacts/`
+- `src/resolve.ts`: `npm run resolve`. Chrome-free place lookup (see "Resolving places without Chrome"); prints candidates, writes `artifacts/resolve.json`
 - `src/connect.ts`: `--cdp auto` (reads `DevToolsActivePort`), `http://…` discovery, or `ws://…`
 - `.claude/skills/listpilot-apply/SKILL.md`: project skill. A `.md` file of places → `plan.json` → `dry` → `apply` (new list or update). Sample input: `examples/places.example.md`
 - `docs/ui-options.md`: parked ideas for a drag-and-drop UI. There's no hosted version, because a server can't reach the user's Chrome.
@@ -23,6 +24,7 @@ the same way every time. The `listpilot-apply` skill connects the two: it turns 
 ## Commands
 
 ```bash
+npm run resolve -- queries.txt | --query '<name city>'                  # no Chrome: candidates + /maps/place/ URLs
 npm run probe -- '<maps place url>' '<existing list name>' --cdp auto   # read-only
 npm run dry   -- plan.json --cdp auto                                    # resolves + reads, writes nothing
 npm run apply -- plan.json --cdp auto                                    # writes, then verifies
@@ -85,11 +87,16 @@ npm test                                                                 # pure 
 
 ## Gotchas
 
-- Claude Code's own shell gets `EPERM` on `DevToolsActivePort`, so runs that touch Chrome must come
-  from the user's terminal. Claude reads `artifacts/` afterwards.
+- Reading `DevToolsActivePort` needs Full Disk Access for whatever started `claude`. Started from a
+  terminal that has it, `claude '/listpilot-apply <file.md> "<List>"'` runs the whole flow itself.
+  The VS Code extension gets `EPERM`, so there the user runs `dry`/`apply` in their terminal and
+  Claude reads `artifacts/` afterwards.
 - Every failure leaves `artifacts/<ts>-fail-<step>.png` **and** `.yaml` (ARIA snapshot). Read the
   yaml first, because it has exact accessible names. Snapshots contain the account name/email, so
   don't paste them anywhere.
+- One tab doing ~70 Maps place loads gets its renderer killed ("Page crashed"), and reloads don't
+  free the memory. `run.ts` opens a fresh tab every 25 places, before the list-view pass, and
+  right after a crash (the crashed place gets one more try).
 - Never write named helper functions inside `page.evaluate`: tsx wraps them in `__name()`, which
   doesn't exist in the page. (The executor no longer uses `evaluate` for rows.)
 - Resolving places without Chrome: Google's `/maps/search/?api=1&query=…` page links a
@@ -107,7 +114,11 @@ npm test                                                                 # pure 
   k-th entry with the k-th same-name row for notes and verify, and drops entries that resolve to
   the same place id. "Same name" means exact title first (`titleGroup`), falling back to `sameTitle`
   prefix matching, so "Septime" and "Septime La Cave" never share a group.
-- Run `dry` before `apply` on real lists. `apply` doesn't depend on it, but writes can't be undone.
+- Run `dry` before `apply` when updating an existing list. For a new list it adds nothing (apply
+  skips closed/unresolved places itself), so the skill previews the resolved names instead.
+  `apply` doesn't depend on it, but writes can't be undone.
+- List names are capped at 40 characters (`MAX_LIST_NAME` in `plan.ts`): Maps cuts longer ones,
+  and the executor then can't find the list it created.
   Use throwaway lists for testing writes.
 - Keep all selectors in `selectors.ts`. When Maps changes, re-probe and diff the snapshots rather than guessing.
 - Don't print or commit the contents of `DevToolsActivePort`. It grants control of the signed-in browser.

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import { parseArgs } from "node:util";
-import type { Page } from "playwright-core";
+import type { BrowserContext, Page } from "playwright-core";
 import { connect } from "./connect.js";
 import { PlanSchema, type ListPlan, type Place } from "./plan.js";
 import {
@@ -53,19 +53,53 @@ async function loadState(): Promise<State> {
   try { return JSON.parse(await fs.readFile(values.state!, "utf8")); } catch { return { lists: {} }; }
 }
 
-async function runList(page: Page, list: ListPlan, state: State): Promise<ListReport> {
+// ── the automation tab ───────────────────────────────────────────────────────
+// Maps' renderer keeps growing across page loads in one tab (reloads don't free it) and Chrome
+// kills it after ~70 places ("Page crashed"). A new tab gets a new renderer process, so the tab is
+// replaced every RECYCLE_EVERY places, and right away after a crash.
+const RECYCLE_EVERY = 25;
+let context: BrowserContext;
+let tab: Page;
+let tabCrashed = false;
+let placesOnTab = 0;
+
+async function freshTab(): Promise<Page> {
+  const old = tab;
+  tab = await context.newPage();
+  tab.setDefaultTimeout(15000); // any step without its own timeout fails in 15s instead of hanging
+  tab.on("crash", () => { tabCrashed = true; });
+  tabCrashed = false;
+  placesOnTab = 0;
+  await old?.close().catch(() => {});
+  return tab;
+}
+
+/** The tab to open the next place in: a new one if this one crashed or has done its share. */
+async function tabForNextPlace(): Promise<Page> {
+  if (tabCrashed || ++placesOnTab > RECYCLE_EVERY) await freshTab();
+  return tab;
+}
+
+async function runList(list: ListPlan, state: State): Promise<ListReport> {
   const r: ListReport = {
     list: list.name, created: false, emojiSet: null, added: [], alreadyPresent: [],
     notesWritten: [], unresolved: [], failed: [], verify: null, warnings: [],
   };
-  return dryRun ? dryRunList(page, list, state, r) : applyList(page, list, state, r);
+  return dryRun ? dryRunList(list, state, r) : applyList(list, state, r);
 }
 
-/** Opens a place and records it in `resolved`, or in the report as unresolved or a duplicate. Leaves the page on it. */
-async function resolvePlace(page: Page, place: Place, resolved: Resolved[], r: ListReport): Promise<Resolved | null> {
-  const res = await retry(page, `resolve-${place.name}`, () => openPlace(page, place)).catch(
-    (e: Error) => ({ ok: false as const, reason: e.message }),
-  );
+/**
+ * Opens a place and records it in `resolved`, or in the report as unresolved or a duplicate.
+ * Leaves `tab` on it. A tab crash gets one more try in a fresh tab.
+ */
+async function resolvePlace(place: Place, resolved: Resolved[], r: ListReport): Promise<Resolved | null> {
+  const open = async () => {
+    const page = await tabForNextPlace();
+    return retry(page, `resolve-${place.name}`, () => openPlace(page, place));
+  };
+  const res = await open()
+    .catch((e: Error) => (tabCrashed ? open() : Promise.reject(e)))
+    .catch((e: Error) => ({ ok: false as const, reason: e.message }));
   if (!res.ok) { r.unresolved.push({ name: place.name, reason: res.reason }); return null; }
   if (resolved.some((x) => placeId(x.url) && placeId(x.url) === placeId(res.url))) {
     r.warnings.push(`"${place.name}" resolved to the same Maps place as another entry, so it was skipped.`);
@@ -88,14 +122,15 @@ function warnShared(resolved: Resolved[], r: ListReport) {
  * Resolves everything and checks each place's own Save-dialog checkbox while its page is open
  * (exact even for chain branches, which the list view can't tell apart). Writes nothing.
  */
-async function dryRunList(page: Page, list: ListPlan, state: State, r: ListReport): Promise<ListReport> {
+async function dryRunList(list: ListPlan, state: State, r: ListReport): Promise<ListReport> {
   // A list recorded in state exists for sure; the Save menu has failed to show a just-created one.
   let exists: boolean | undefined = list.name in state.lists ? true : undefined;
   const resolved: Resolved[] = [];
   const unknown: Resolved[] = []; // list exists but isn't in this place's Save menu yet
   for (const place of list.places) {
-    const p = await resolvePlace(page, place, resolved, r);
+    const p = await resolvePlace(place, resolved, r);
     if (!p) { await pause(); continue; }
+    const page = tab;
     try {
       // Decided on the first resolved place's page, which is already open.
       exists ??= await retry(page, "check-list", () => listExists(page, list.name));
@@ -112,6 +147,7 @@ async function dryRunList(page: Page, list: ListPlan, state: State, r: ListRepor
 
   // Fallback for places whose Save menu doesn't show the list yet: match by name in the list view.
   if (unknown.length) {
+    const page = await freshTab();
     try {
       const url = await retry(page, "open-list", () => openList(page, list.name, state.lists[list.name]?.url));
       state.lists[list.name] = { url };
@@ -132,21 +168,23 @@ async function dryRunList(page: Page, list: ListPlan, state: State, r: ListRepor
  * One visit per place: resolve it and save it from the same page, then write all notes in one pass
  * over the list view (the only place Maps offers notes), then verify. `dry` is the up-front check.
  */
-async function applyList(page: Page, list: ListPlan, state: State, r: ListReport): Promise<ListReport> {
+async function applyList(list: ListPlan, state: State, r: ListReport): Promise<ListReport> {
   // For newest-first display, rank 1 is saved last, so a ranked list is walked backwards.
   const backwards = list.ordered && newestFirst;
   const resolved: Resolved[] = [];
   // A list recorded in state exists for sure; the Save menu has failed to show a just-created one.
   let listReady = list.name in state.lists;
   for (const place of backwards ? [...list.places].reverse() : list.places) {
-    const p = await resolvePlace(page, place, resolved, r);
+    const p = await resolvePlace(place, resolved, r);
     if (!p) { await pause(); continue; }
     // No skipping by name: branches of a chain share one. Each place's own checkbox in the Save
     // dialog (saveToList → "already") says whether this exact place is in the list.
+    let page = tab;
     let onPage = true;
     let createdWithThis = false; // this place's Create click went through (it's saved by the create)
     try {
       await retry(page, `save-${p.title}`, async () => {
+        if (tabCrashed) { page = await freshTab(); onPage = false; }
         if (!onPage) await openPlace(page, { name: p.name, url: p.url });
         onPage = false; // a retry starts from a fresh load
         // A create whose confirmation timed out may still have worked. Never create the list twice.
@@ -181,7 +219,8 @@ async function applyList(page: Page, list: ListPlan, state: State, r: ListReport
     return r;
   }
   try {
-    await finishList(page, list, state, resolved, r);
+    // The notes pass and the hard reload get a tab with nothing built up.
+    await finishList(await freshTab(), list, state, resolved, r);
   } catch (e) {
     // Keep what was already done in the report instead of losing it to a crash.
     r.failed.push({ name: list.name, reason: `list view: ${(e as Error).message}` });
@@ -246,17 +285,17 @@ async function main() {
 
   // Attach to Chrome over CDP (main Chrome via chrome://inspect toggle, or the dedicated profile).
   const browser = await connect(values.cdp!);
-  const context = browser.contexts()[0];
-  if (!context) throw new Error("No browser context — is Chrome running with --remote-debugging-port?");
-  const page = await context.newPage();
-  page.setDefaultTimeout(15000); // any step without its own timeout fails in 15s instead of hanging
+  const ctx = browser.contexts()[0];
+  if (!ctx) throw new Error("No browser context — is Chrome running with --remote-debugging-port?");
+  context = ctx;
+  await freshTab();
 
   const reports: ListReport[] = [];
   try {
-    await ensureSignedIn(page, values.account);
+    await ensureSignedIn(tab, values.account);
     for (const list of plan.lists) {
       // A crash in one list must not take the report (or the other lists) down with it.
-      reports.push(await runList(page, list, state).catch((e: Error) => ({
+      reports.push(await runList(list, state).catch((e: Error) => ({
         list: list.name, created: false, emojiSet: null, added: [], alreadyPresent: [], notesWritten: [],
         unresolved: [], failed: [{ name: list.name, reason: `crashed: ${e.message}` }], verify: null,
         warnings: ["Crashed mid-run: check the list in Maps before re-running."],
@@ -266,7 +305,7 @@ async function main() {
     await fs.writeFile(values.state!, JSON.stringify(state, null, 2));
     await fs.mkdir(ARTIFACTS, { recursive: true });
     await fs.writeFile(`${ARTIFACTS}/report.json`, JSON.stringify(reports, null, 2));
-    await page.close().catch(() => {});
+    await tab.close().catch(() => {});
     await browser.close(); // disconnects only; your Chrome keeps running
   }
 
