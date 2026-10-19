@@ -27,6 +27,9 @@ if [[ ! -d node_modules ]]; then
   echo "Installing dependencies (first run)…"
   npm install --silent || fail "npm install failed." "Run 'npm install' here and fix the error it shows."
 fi
+# Sessions closed midway skip listpilot-run's cleanup. Drop leftovers untouched for a week; newer ones
+# (unreviewed research, plan.retry.json, failure snapshots) stay so that work can be resumed.
+npm run -s clean -- --older-than 7 2>/dev/null || true
 [[ "$(uname)" == Darwin ]] || warn "Made for macOS. Elsewhere, open the review page link yourself; Chrome setup differs."
 [[ "$(uname)" != Darwin || -d "/Applications/Google Chrome.app" ]] ||
   warn "Google Chrome not found in /Applications. The Maps step drives Chrome, so install it before then."

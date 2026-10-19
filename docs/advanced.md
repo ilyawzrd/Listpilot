@@ -133,6 +133,11 @@ deep-research's `reports/` and `research_notes/`. What stays is each
 list's final places file, which you can re-run with `/listpilot-apply`, plus git-tracked files and the
 real lists in `.gmaps-state.json`. Run `npm run clean -- --dry-run` to see what it would remove.
 
+Sessions you close midway never reach that step, so `./start.sh` also runs
+`npm run clean -- --older-than 7` on launch: it removes the same leftovers, but only ones untouched
+for 7 days, and leaves `.gmaps-state.json` alone. Anything newer stays, so an unreviewed research
+file or a failed apply can still be picked up.
+
 ## Commands
 
 ```bash
@@ -150,6 +155,7 @@ Other commands:
 ```bash
 npm run review -- research/<slug>.json   # reopen the review page for a research result
 npm run clean -- --dry-run               # show what cleanup would remove (drop --dry-run to remove it)
+npm run clean -- --older-than 7          # only leftovers untouched for 7+ days (what start.sh runs)
 ```
 
 To look up places on their own, without Chrome:

@@ -10,6 +10,7 @@ import { MAX_LIST_NAME } from "./plan.js";
  *
  *   npm run clean               # listpilot-run also runs it after a verified apply
  *   npm run clean -- --dry-run
+ *   npm run clean -- --older-than 7   # start.sh: only leftovers untouched for 7 days, state file left alone
  *
  * Keeps research/*.places.md, anything git tracks, and the state file's real lists. Removes
  * artifacts/*, every untracked plan*.json (plan.json, plan.retry.json, dated backups, custom names
@@ -28,6 +29,16 @@ function trackedFiles(root: string): string[] {
   } catch {
     return []; // not a git checkout: nothing is protected by tracking
   }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Latest mtime of a file, or of anything inside a folder (editing a file doesn't touch its folder's mtime). */
+async function newestMtime(abs: string): Promise<number> {
+  const st = await fs.lstat(abs);
+  if (!st.isDirectory()) return st.mtimeMs;
+  const inside = await Promise.all((await list(abs)).map((name) => newestMtime(path.join(abs, name))));
+  return Math.max(st.mtimeMs, ...inside);
 }
 
 const exists = (p: string) => fs.lstat(p).then(() => true, () => false);
@@ -55,7 +66,12 @@ async function pruneState(root: string, dryRun: boolean): Promise<string[]> {
   return stale;
 }
 
-export async function clean(root: string, opts: { dryRun?: boolean } = {}): Promise<string[]> {
+/**
+ * olderThanDays: remove only candidates (a whole folder counts as one) untouched for that many days,
+ * and leave .gmaps-state.json alone, so an interrupted session can still be resumed.
+ */
+export async function clean(root: string, opts: { dryRun?: boolean; olderThanDays?: number } = {}): Promise<string[]> {
+  const cutoff = opts.olderThanDays === undefined ? Infinity : Date.now() - opts.olderThanDays * DAY_MS;
   const tracked = trackedFiles(root);
   const removed: string[] = [];
   const remove = async (rel: string): Promise<void> => {
@@ -71,15 +87,21 @@ export async function clean(root: string, opts: { dryRun?: boolean } = {}): Prom
     if (!opts.dryRun) await fs.rm(abs, { recursive: true, force: true }); // lstat + rm: symlinks go, targets stay
     removed.push(st.isDirectory() ? `${rel}/` : rel);
   };
-  for (const rel of await candidates(root)) await remove(rel);
+  for (const rel of await candidates(root)) {
+    if (cutoff !== Infinity && (await newestMtime(path.join(root, rel)).catch(() => Infinity)) > cutoff) continue;
+    await remove(rel);
+  }
+  if (opts.olderThanDays !== undefined) return removed;
   for (const name of await pruneState(root, !!opts.dryRun)) removed.push(`.gmaps-state.json entry "${name}"`);
   return removed;
 }
 
 async function main() {
-  const { values } = parseArgs({ options: { "dry-run": { type: "boolean" } } });
-  const removed = await clean(process.cwd(), { dryRun: values["dry-run"] });
-  if (!removed.length) { console.log("Nothing to clean"); return; }
+  const { values } = parseArgs({ options: { "dry-run": { type: "boolean" }, "older-than": { type: "string" } } });
+  const days = values["older-than"] === undefined ? undefined : Number(values["older-than"]);
+  if (days !== undefined && !(days >= 0)) throw new Error(`--older-than takes a number of days, got "${values["older-than"]}"`);
+  const removed = await clean(process.cwd(), { dryRun: values["dry-run"], olderThanDays: days });
+  if (!removed.length) { if (days === undefined) console.log("Nothing to clean"); return; }
   if (values["dry-run"]) for (const r of removed) console.log(`Would remove ${r}`);
   const kept = (await list("research")).filter((n) => n.endsWith(".places.md"));
   console.log(`${values["dry-run"] ? "Would clean" : "Cleaned"} ${removed.length} item${removed.length === 1 ? "" : "s"}` +

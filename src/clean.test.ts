@@ -84,3 +84,26 @@ test("clean --dry-run removes nothing and leaves the state file alone", async ()
   assert.equal((await present(root)).length, FILES.length);
   assert.deepEqual(Object.keys((await state(root)).lists).sort(), Object.keys(STATE.lists).sort());
 });
+
+test("clean --older-than removes only stale leftovers and leaves the state file alone", async () => {
+  const root = await tree();
+  const old = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+  for (const f of ["artifacts/20261018-fail-save.png", "plan.json", "research/lisbon-bakeries-20261018.json",
+    "research_notes/Lisbon bakeries/notes.md", "research_notes/Lisbon bakeries", "research_notes"]) {
+    await fs.utimes(path.join(root, f), old, old);
+  }
+  // reports/ is old itself but holds a fresh file, so the whole folder stays
+  await fs.utimes(path.join(root, "reports"), old, old);
+  const removed = await clean(root, { olderThanDays: 7 });
+  assert.deepEqual(new Set(removed), new Set([
+    "artifacts/20261018-fail-save.png",
+    "plan.json",
+    "research/lisbon-bakeries-20261018.json",
+    "research_notes/",
+  ]));
+  const left = await present(root);
+  for (const f of ["plan.retry.json", "research/lisbon-bakeries-20261018.html", "reports/Lisbon bakeries.md"]) {
+    assert.ok(left.includes(f), f);
+  }
+  assert.deepEqual(Object.keys((await state(root)).lists).sort(), Object.keys(STATE.lists).sort());
+});
