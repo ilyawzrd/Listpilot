@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { norm, parseRows, placeId, sameName, sameTitle, titleGroup } from "./maps.js";
+import { localeFromLang, norm, parseRows, placeId, sameName, sameTitle, titleGroup } from "./maps.js";
+import { TEXT } from "./selectors.js";
 import { PlanSchema } from "./plan.js";
 
 // Hand-written in the shape of real list-view snapshots (real ones contain the account email).
@@ -32,6 +33,41 @@ test("parseRows reads titles, notes and note controls in order", () => {
     { title: "Pho 19", note: "", ctrl: "add", nth: 1 },
     { title: "Ten Belles", note: "", ctrl: "box", nth: 2 },
   ]);
+});
+
+// The same list in the Spanish UI (row shapes from a hl=es probe, Oct 2026).
+const SNAPSHOT_ES = `
+- heading "Paris" [level=1]
+- button "Añadir un sitio"
+- button "Septime 4,6 estrellas 2.345 reseñas":
+  - text: Septime
+- textbox "Nota": Reservar con 3 semanas
+- button "Septime La Cave 4,5 estrellas":
+  - text: Septime La Cave
+- button "Agregar nota": Nota
+- button "Pho 19 Cerrado permanentemente"
+- button "Añadir nota": Nota
+- button "Ten Belles 4,3 estrellas":
+  - text: Ten Belles
+- textbox "Nota"
+`;
+
+test("parseRows reads a Spanish list view with the es table", () => {
+  assert.deepEqual(parseRows(SNAPSHOT_ES, TEXT.es), [
+    { title: "Septime", note: "Reservar con 3 semanas", ctrl: "box", nth: 0 },
+    { title: "Septime La Cave", note: "", ctrl: "add", nth: 0 },
+    { title: "Pho 19", note: "", ctrl: "add", nth: 1 },
+    { title: "Ten Belles", note: "", ctrl: "box", nth: 1 },
+  ]);
+  assert.deepEqual(parseRows(SNAPSHOT_ES, TEXT.en), []);
+});
+
+test("localeFromLang maps Maps' <html lang> to a selector table", () => {
+  assert.equal(localeFromLang("es"), "es");
+  assert.equal(localeFromLang("es-419"), "es");
+  assert.equal(localeFromLang("en-GB"), "en");
+  assert.equal(localeFromLang("fr"), "en");
+  assert.equal(localeFromLang(null), "en");
 });
 
 test("parseRows counts a note control even when its row title wasn't recognised", () => {

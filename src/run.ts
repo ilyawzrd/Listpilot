@@ -4,7 +4,7 @@ import type { BrowserContext, Page } from "playwright-core";
 import { connect } from "./connect.js";
 import { PlanSchema, type ListPlan, type Place } from "./plan.js";
 import {
-  ARTIFACTS, createListWithPlace, ensureSignedIn, hardReload, isInList, listExists, norm, openList,
+  ARTIFACTS, createListWithPlace, detectLanguage, ensureSignedIn, type LangOption, hardReload, isInList, listExists, norm, openList,
   openPlace, pause, placeId, readList, retry, sameTitle, saveToList, setListIcon, titleGroup, writeNote, type ListItem,
 } from "./maps.js";
 
@@ -18,6 +18,8 @@ const { values, positionals } = parseArgs({
     state: { type: "string", default: ".gmaps-state.json" },
     // Expected Google account email; the run stops before any write on a mismatch.
     account: { type: "string", default: process.env.GMAPS_ACCOUNT },
+    // Maps UI language: auto reads it from Maps (follows the Google account's language setting).
+    lang: { type: "string", default: "auto" },
   },
 });
 
@@ -28,6 +30,10 @@ if (!["newest-first", "oldest-first"].includes(values["list-order"]!)) {
   process.exit(1);
 }
 const newestFirst = values["list-order"] === "newest-first";
+if (!["auto", "en", "es"].includes(values.lang!)) {
+  console.error(`--lang must be auto, en or es, got "${values.lang}"`);
+  process.exit(1);
+}
 
 /** Lists this executor knows exist (it created them or opened them), with the list view URL once seen. */
 type State = { lists: Record<string, { url?: string }> };
@@ -291,7 +297,10 @@ async function main() {
   await freshTab();
 
   const reports: ListReport[] = [];
+  let hl = "en";
   try {
+    hl = await detectLanguage(tab, values.lang as LangOption);
+    console.log(`Maps UI: ${hl}`);
     await ensureSignedIn(tab, values.account);
     for (const list of plan.lists) {
       // A crash in one list must not take the report (or the other lists) down with it.
@@ -304,7 +313,7 @@ async function main() {
   } finally {
     await fs.writeFile(values.state!, JSON.stringify(state, null, 2));
     await fs.mkdir(ARTIFACTS, { recursive: true });
-    await fs.writeFile(`${ARTIFACTS}/report.json`, JSON.stringify(reports, null, 2));
+    await fs.writeFile(`${ARTIFACTS}/report.json`, JSON.stringify(reports.map((r) => ({ ...r, mapsLanguage: hl })), null, 2));
     await tab.close().catch(() => {});
     await browser.close(); // disconnects only; your Chrome keeps running
   }

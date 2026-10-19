@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import type { Locator, Page } from "playwright-core";
-import { S } from "./selectors.js";
+import { S, TEXT, locale, setLocale, type Locale } from "./selectors.js";
 import type { Place } from "./plan.js";
 
 const MAPS = "https://www.google.com/maps";
@@ -27,11 +27,37 @@ export const sameName = (a: string, b: string) => {
 /** Google's place id from a /maps/place/ URL (…!1s0x…:0x…), used to spot two entries for one place. */
 export const placeId = (url: string) => url.match(/!1s(0x[0-9a-f]+:0x[0-9a-f]+)/i)?.[1];
 
-export const withHl =(url: string) => {
+/** The `hl` every URL gets: "en", or the account's exact Spanish tag ("es", "es-419") once detected. */
+let hl = "en";
+
+export const withHl = (url: string) => {
   const u = new URL(url);
-  u.searchParams.set("hl", "en");
+  u.searchParams.set("hl", hl);
   return u.toString();
 };
+
+/** Maps' <html lang> → the selector table to use. Anything without one stays English (forced hl=en). */
+export const localeFromLang = (lang: string | null | undefined): Locale =>
+  /^es\b/i.test(lang?.trim() ?? "") ? "es" : "en";
+
+export type LangOption = "auto" | Locale;
+
+/**
+ * Picks the Maps UI language. `auto` opens Maps without `hl` and reads <html lang>, which follows the
+ * account's language setting. Returns the `hl` tag every later URL gets.
+ */
+export async function detectLanguage(page: Page, lang: LangOption = "auto"): Promise<string> {
+  let tag: string = lang;
+  if (lang === "auto") {
+    await page.goto(MAPS, { waitUntil: "domcontentloaded" });
+    await dismissConsent(page);
+    await page.waitForURL(/\/maps/, { timeout: 10_000 }).catch(() => {});
+    tag = (await page.locator("html").getAttribute("lang", { timeout: 10_000 }).catch(() => null)) ?? "en";
+  }
+  setLocale(localeFromLang(tag));
+  hl = locale() === "es" ? tag : "en";
+  return hl;
+}
 
 export async function screenshot(page: Page, label: string) {
   await fs.mkdir(ARTIFACTS, { recursive: true });
@@ -290,7 +316,7 @@ async function scanRows(page: Page): Promise<Row[]> {
 }
 
 /** Pure part of scanRows, exported for testing against saved snapshots. */
-export function parseRows(snapshot: string): Row[] {
+export function parseRows(snapshot: string, t = TEXT[locale()]): Row[] {
   const lines = snapshot.split("\n").map((l) => {
     const item = l.trim().replace(/^- /, "");
     // Items that YAML had to quote whole look like: 'button "A: B"': → unwrap.
@@ -302,11 +328,11 @@ export function parseRows(snapshot: string): Row[] {
   let adds = 0, boxes = 0;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i]!;
-    if (/^button "Add note"/.test(l)) {
+    if (t.rowAddNote.test(l)) {
       if (title !== null) rows.push({ title, note: "", ctrl: "add", nth: adds });
       adds++; title = null;
-    } else if (/^textbox "Note"(:|$)/.test(l)) {
-      const note = l.replace(/^textbox "Note":?/, "");
+    } else if (t.rowNote.test(l)) {
+      const note = l.replace(t.rowNote, "");
       if (title !== null) rows.push({ title, note: unyaml(note), ctrl: "box", nth: boxes });
       boxes++; title = null;
     } else if (/^button ".*":$/.test(l)) {
@@ -314,7 +340,7 @@ export function parseRows(snapshot: string): Row[] {
       if (child) title = unyaml(child[1]!);
     } else {
       // A closed place's row has no children: button "Pho 19 Permanently closed".
-      const closed = l.match(/^button "(.+) (?:Permanently|Temporarily) closed"$/);
+      const closed = l.match(t.rowClosed);
       if (closed) title = unyaml(closed[1]!);
     }
   }

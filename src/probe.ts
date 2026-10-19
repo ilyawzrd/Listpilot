@@ -3,20 +3,22 @@
  * Saved panel, and dumps ARIA snapshots to ./artifacts. Paste those back to Claude to fix
  * src/selectors.ts against the real UI.
  *
- *   npm run probe -- 'https://www.google.com/maps/place/...' ['List name'] [--cdp auto]
+ *   npm run probe -- 'https://www.google.com/maps/place/...' ['List name'] [--cdp auto] [--lang auto|en|es]
  */
 import fs from "node:fs/promises";
 import type { Page } from "playwright-core";
 import { connect } from "./connect.js";
 import { S } from "./selectors.js";
-import { ARTIFACTS, dismissConsent, pause, readList, screenshot, withHl } from "./maps.js";
+import { ARTIFACTS, detectLanguage, dismissConsent, pause, readList, screenshot, withHl, type LangOption } from "./maps.js";
 
 const args = process.argv.slice(2);
 const cdpIdx = args.indexOf("--cdp");
 const cdp = cdpIdx >= 0 ? args.splice(cdpIdx, 2)[1]! : "http://127.0.0.1:9222";
+const langIdx = args.indexOf("--lang");
+const lang = (langIdx >= 0 ? args.splice(langIdx, 2)[1]! : "auto") as LangOption;
 const [placeUrl, listName] = args;
 if (!placeUrl) {
-  console.error("usage: npm run probe -- '<maps place url>' ['List name'] [--cdp auto]");
+  console.error("usage: npm run probe -- '<maps place url>' ['List name'] [--cdp auto] [--lang auto|en|es]");
   process.exit(1);
 }
 
@@ -31,6 +33,7 @@ const browser = await connect(cdp);
 const page = await browser.contexts()[0]!.newPage();
 await fs.mkdir(ARTIFACTS, { recursive: true });
 try {
+  console.log(`  Maps UI: ${await detectLanguage(page, lang)}`);
   await page.goto(withHl(placeUrl), { waitUntil: "domcontentloaded" });
   await dismissConsent(page);
   await pause(2000, 3000);
@@ -52,7 +55,7 @@ try {
   }
   await page.keyboard.press("Escape"); // nothing is toggled
 
-  await page.goto("https://www.google.com/maps?hl=en", { waitUntil: "domcontentloaded" });
+  await page.goto(withHl("https://www.google.com/maps"), { waitUntil: "domcontentloaded" });
   await pause(2000, 3000);
   await S.menuButton(page).click({ timeout: 8000 });
   await pause(1500, 2000);

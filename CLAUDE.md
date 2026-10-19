@@ -16,7 +16,7 @@ for the rest of that turn only, so a new user prompt goes back to the session mo
 ## Layout
 
 - `src/plan.ts`: zod schema for `plan.json` (`version: 1`, `lists[].{name, emoji?, ordered, places[].{name, url?|query?, note?}}`)
-- `src/selectors.ts`: **every** Maps UI hook. Roles, aria-labels and names only, never CSS classes.
+- `src/selectors.ts`: **every** Maps UI hook. Roles, aria-labels and names only, never CSS classes. Per-language name tables (`TEXT.en`, `TEXT.es`), picked by `setLocale`
 - `src/maps.ts`: page operations: openPlace, isInList, saveToList, createListWithPlace, openList, readList, writeNote, setListIcon, hardReload
 - `src/run.ts`: orchestration. `apply` opens each place once, resolving and saving it in the same visit, then does icon + notes in one list-view pass, then hard reload and verify. `--dry-run` resolves everything and reads each place's Save-dialog checkbox (exact for chain branches). Writes `artifacts/report.json`, exit code 2 on verify failure
 - `src/probe.ts`: read-only calibration that dumps ARIA snapshots (incl. the New-list form peek, `aria-2b-new-list-form.yaml`) and `rows.json` to `artifacts/`
@@ -59,7 +59,10 @@ npm test                                                                 # pure 
   before anything else if the signed-in account (`button "Google Account: <Name> (<email>)"`) doesn't match.
   The error never prints the account it found.
 - **zsh: always single-quote Maps URLs.** Inside double quotes, `!4m6!3m5…` triggers history expansion.
-- Node + npm, not pnpm. The Maps UI is assumed to be English; every URL gets `hl=en`.
+- Node + npm, not pnpm. Maps UI language: `--lang auto` (default) opens Maps without `hl` and reads
+  `<html lang>` (follows the account). `es*` → `TEXT.es` with that exact tag as `hl`; anything else → `TEXT.en`
+  with `hl=en`. `TEXT.es` was probed and passed an apply under `hl=es`
+  (Oct 2026). Still unseen: closed-place text, "Guardado (N)", sign-in link. The emoji picker stays English.
 
 ## How the Maps UI behaves (from probe snapshots, Oct 2026)
 

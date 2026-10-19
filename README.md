@@ -59,6 +59,7 @@ instead. You can drag the file into the terminal window. There's no review page 
 - If a place already has a note, the new note is added after it, not written over it.
 - If Claude can't tell for sure which place is meant, it skips it and tells you. It never guesses.
 - List names can be at most 40 characters.
+- Google Maps in English or Spanish both work. The language is picked up from your Google account.
 - Run it from the Terminal app, not from inside an editor like VS Code. Editors can't reach Chrome's settings.
 
 ## If something goes wrong
