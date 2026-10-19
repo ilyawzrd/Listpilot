@@ -30,8 +30,8 @@ if (!["newest-first", "oldest-first"].includes(values["list-order"]!)) {
   process.exit(1);
 }
 const newestFirst = values["list-order"] === "newest-first";
-if (!["auto", "en", "es"].includes(values.lang!)) {
-  console.error(`--lang must be auto, en or es, got "${values.lang}"`);
+if (!["auto", "en", "es", "ru"].includes(values.lang!)) {
+  console.error(`--lang must be auto, en, es or ru, got "${values.lang}"`);
   process.exit(1);
 }
 

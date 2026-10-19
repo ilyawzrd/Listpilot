@@ -147,9 +147,9 @@ Flags:
 - `--cdp <url>`: default `http://127.0.0.1:9222`. Use `auto` for Option A.
 - `--state <file>`: default `.gmaps-state.json`.
 - `--account <email>`: stop if Chrome is signed in to a different account.
-- `--lang auto|en|es`: Maps UI language. `auto` (default) opens Maps without `hl` and reads
-  `<html lang>`, which follows the Google account's language. Spanish keeps the exact tag
-  (`es`, `es-419`) as `hl`; anything else forces `hl=en`. `report.json` records it as `mapsLanguage`.
+- `--lang auto|en|es|ru`: Maps UI language. `auto` (default) opens Maps without `hl` and reads
+  `<html lang>`, which follows the Google account's language. Spanish and Russian keep the exact
+  tag (`es`, `es-419`, `ru`) as `hl`; anything else forces `hl=en`. `report.json` records it as `mapsLanguage`.
 - `--list-order newest-first|oldest-first`: you shouldn't need this. Maps shows the most recently
   modified place first, and editing a note counts as a change; `apply` already accounts for that.
 
@@ -175,8 +175,8 @@ npm run probe -- 'https://www.google.com/maps/place/<any place>' '<an existing l
 This is read-only. It writes ARIA snapshots and screenshots to `artifacts/`. If something
 doesn't match, send the `aria-*.yaml` files to Claude and it'll fix `selectors.ts`.
 
-Each UI language has its own table (`TEXT.en`, `TEXT.es`) in `selectors.ts`. To calibrate Spanish,
-run the probe with a Spanish-language account (or add `--lang es`).
+Each UI language has its own table (`TEXT.en`, `TEXT.es`, `TEXT.ru`) in `selectors.ts`. To calibrate
+Spanish or Russian, run the probe with an account in that language (or add `--lang es` / `--lang ru`).
 
 ## Guarantees
 

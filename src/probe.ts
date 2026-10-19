@@ -3,7 +3,7 @@
  * Saved panel, and dumps ARIA snapshots to ./artifacts. Paste those back to Claude to fix
  * src/selectors.ts against the real UI.
  *
- *   npm run probe -- 'https://www.google.com/maps/place/...' ['List name'] [--cdp auto] [--lang auto|en|es]
+ *   npm run probe -- 'https://www.google.com/maps/place/...' ['List name'] [--cdp auto] [--lang auto|en|es|ru]
  */
 import fs from "node:fs/promises";
 import type { Page } from "playwright-core";
@@ -18,7 +18,7 @@ const langIdx = args.indexOf("--lang");
 const lang = (langIdx >= 0 ? args.splice(langIdx, 2)[1]! : "auto") as LangOption;
 const [placeUrl, listName] = args;
 if (!placeUrl) {
-  console.error("usage: npm run probe -- '<maps place url>' ['List name'] [--cdp auto] [--lang auto|en|es]");
+  console.error("usage: npm run probe -- '<maps place url>' ['List name'] [--cdp auto] [--lang auto|en|es|ru]");
   process.exit(1);
 }
 

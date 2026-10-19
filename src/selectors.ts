@@ -8,9 +8,10 @@ import type { Locator, Page } from "playwright-core";
  * click, note blur) have run end to end with verify passing. Re-run `npm run probe` whenever Maps changes.
  *
  * The UI language is detected when Maps first opens (`detectLanguage` in maps.ts), then `setLocale`
- * picks the matching table below. Spanish names cover both es-ES and es-419 wording.
+ * picks the matching table below. Spanish names cover both es-ES and es-419 wording; Russian names
+ * are from a hl=ru probe.
  */
-export type Locale = "en" | "es";
+export type Locale = "en" | "es" | "ru";
 
 type Name = string | RegExp;
 type Text = {
@@ -23,11 +24,12 @@ type Text = {
   rowAddNote: RegExp; rowNote: RegExp; rowClosed: RegExp;
 };
 
-// Never-click names: "Delete" (row, on hover) and "Clear icon" / "Borrar icono" (icon menu).
+// Never-click names: "Delete" / "Удалить" (row, on hover) and "Clear icon" / "Borrar icono" /
+// "Удалить значок" (icon menu).
 export const TEXT: Record<Locale, Text> = {
   en: {
     // The consent page follows the browser's language, not the account's, so both are matched.
-    rejectAll: /^(Reject all|Rechazar todo)$/i,
+    rejectAll: /^(Reject all|Rechazar todo|Отклонить все)$/i,
     signIn: /^Sign in$/i,
     /** Verified: button "Google Account: <Name> (<email>)". */
     account: /^Google Account: /,
@@ -62,7 +64,7 @@ export const TEXT: Record<Locale, Text> = {
   // An apply with hl=es (create, save, "Añadir nota", icon, hard-reload verify) passed end to end.
   // Never click "Borrar icono" (= Clear icon).
   es: {
-    rejectAll: /^(Reject all|Rechazar todo)$/i,
+    rejectAll: /^(Reject all|Rechazar todo|Отклонить все)$/i,
     signIn: /^Iniciar sesión$/i,
     account: /^Cuenta de Google: /,
     actionsFor: /^Acciones para /,
@@ -89,6 +91,41 @@ export const TEXT: Record<Locale, Text> = {
     rowAddNote: /^button "(?:Añadir|Agregar) (?:una )?nota"/,
     rowNote: /^textbox "Nota"(?::|$)/,
     rowClosed: /^button "(.+) Cerrad[oa] (?:permanentemente|temporalmente)"$/,
+  },
+  // Probe with hl=ru (Oct 2026) verified the rest. Still best guesses, because the probe never saw them:
+  // signIn, permanentlyClosed / rowClosed (closed place), save's "Сохранено (N)" (an already-saved place).
+  // An apply with hl=ru (create, save, "Добавить примечание", icon, hard-reload verify) passed end to end.
+  // Never click "Удалить" (row) or "Удалить значок" (= Clear icon).
+  ru: {
+    rejectAll: /^(Reject all|Rechazar todo|Отклонить все)$/i,
+    signIn: /^Войти$/i,
+    account: /^Аккаунт Google: /,
+    /** Verified: region "Действия для места \"<name>\"". */
+    actionsFor: /^Действия для места /,
+    permanentlyClosed: /^Закрыто навсегда$/i,
+    save: /^(Сохранить|Сохранено|Сохранен[оа]?)( \(\d+\))?$/i,
+    saveDialog: /^Сохранить в списках$/i,
+    /** Verified: "Личный·577 мест", "В совместном доступе·16 мест", "Личный". Only the privacy word is
+     *  matched, because the count's plural varies (место / места / мест). Public is a guess. */
+    listSuffix: "(Личный|В совместном доступе|Общедоступный|Открытый)( ?·|$)",
+    newList: /^Новый список$/i,
+    newListDialog: /^Новый список$/i,
+    listName: /^Название списка$/i, // prefilled "Список без названия"
+    create: /^Создать$/i,
+    menu: /^Меню$/i,
+    settings: /^Настройки$/i,
+    saved: /^Сохранено$/i, // menuitem in the "Настройки" menu
+    yourPlaces: /^Мои места$/i,
+    addPlace: /^Добавить место$/i,
+    editIcon: /^Изменить значок$/i,
+    addNote: /^Добавить (примечание|заметку)$/i,
+    note: /^Примечание$/i,
+    chooseIcon: /^Выбрать значок$/i,
+    // Verified: the picker stays English under hl=ru too (it follows Chrome's language), so match both.
+    emojiPalette: /^(Emoji characters palette|Палитра (символов )?эмодзи)/i,
+    rowAddNote: /^button "Добавить (?:примечание|заметку)"/,
+    rowNote: /^textbox "Примечание"(?::|$)/,
+    rowClosed: /^button "(.+) Закрыто (?:навсегда|временно)"$/,
   },
 };
 

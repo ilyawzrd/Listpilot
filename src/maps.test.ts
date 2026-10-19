@@ -62,9 +62,38 @@ test("parseRows reads a Spanish list view with the es table", () => {
   assert.deepEqual(parseRows(SNAPSHOT_ES, TEXT.en), []);
 });
 
+// The same list in the Russian UI (row shapes from a hl=ru probe, Oct 2026).
+const SNAPSHOT_RU = `
+- heading "Москва" [level=1]
+- button "Добавить место"
+- 'button "Кофемания 4,6-звездочные Отзывов: 2 345"':
+  - text: Кофемания
+- textbox "Примечание": Бронировать заранее
+- button "Кофемания на Покровке 4,5-звездочные":
+  - text: Кофемания на Покровке
+- button "Добавить примечание": Примечание
+- button "Пельменная №1 Закрыто навсегда"
+- button "Добавить примечание": Примечание
+- button "Ёлки-Палки 4,3-звездочные":
+  - text: Ёлки-Палки
+- textbox "Примечание"
+`;
+
+test("parseRows reads a Russian list view with the ru table", () => {
+  assert.deepEqual(parseRows(SNAPSHOT_RU, TEXT.ru), [
+    { title: "Кофемания", note: "Бронировать заранее", ctrl: "box", nth: 0 },
+    { title: "Кофемания на Покровке", note: "", ctrl: "add", nth: 0 },
+    { title: "Пельменная №1", note: "", ctrl: "add", nth: 1 },
+    { title: "Ёлки-Палки", note: "", ctrl: "box", nth: 1 },
+  ]);
+  assert.deepEqual(parseRows(SNAPSHOT_RU, TEXT.en), []);
+});
+
 test("localeFromLang maps Maps' <html lang> to a selector table", () => {
   assert.equal(localeFromLang("es"), "es");
   assert.equal(localeFromLang("es-419"), "es");
+  assert.equal(localeFromLang("ru"), "ru");
+  assert.equal(localeFromLang("ru-RU"), "ru");
   assert.equal(localeFromLang("en-GB"), "en");
   assert.equal(localeFromLang("fr"), "en");
   assert.equal(localeFromLang(null), "en");

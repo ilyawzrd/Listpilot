@@ -27,7 +27,7 @@ export const sameName = (a: string, b: string) => {
 /** Google's place id from a /maps/place/ URL (…!1s0x…:0x…), used to spot two entries for one place. */
 export const placeId = (url: string) => url.match(/!1s(0x[0-9a-f]+:0x[0-9a-f]+)/i)?.[1];
 
-/** The `hl` every URL gets: "en", or the account's exact Spanish tag ("es", "es-419") once detected. */
+/** The `hl` every URL gets: "en", or the account's exact es/ru tag ("es", "es-419", "ru") once detected. */
 let hl = "en";
 
 export const withHl = (url: string) => {
@@ -37,8 +37,10 @@ export const withHl = (url: string) => {
 };
 
 /** Maps' <html lang> → the selector table to use. Anything without one stays English (forced hl=en). */
-export const localeFromLang = (lang: string | null | undefined): Locale =>
-  /^es\b/i.test(lang?.trim() ?? "") ? "es" : "en";
+export const localeFromLang = (lang: string | null | undefined): Locale => {
+  const tag = lang?.trim() ?? "";
+  return /^es\b/i.test(tag) ? "es" : /^ru\b/i.test(tag) ? "ru" : "en";
+};
 
 export type LangOption = "auto" | Locale;
 
@@ -55,7 +57,7 @@ export async function detectLanguage(page: Page, lang: LangOption = "auto"): Pro
     tag = (await page.locator("html").getAttribute("lang", { timeout: 10_000 }).catch(() => null)) ?? "en";
   }
   setLocale(localeFromLang(tag));
-  hl = locale() === "es" ? tag : "en";
+  hl = locale() === "en" ? "en" : tag;
   return hl;
 }
 
