@@ -61,6 +61,8 @@ from your file, so you can untick some and edit notes before anything goes to Ma
 - If a place already has a note, the new note is added after it, not written over it.
 - If Claude can't tell for sure which place is meant, it skips it and tells you. It never guesses.
 - List names can be at most 40 characters.
+- Each list's final places file stays in `research/` (`*.places.md`), so you can run it again later.
+  Other leftover files are removed after a successful save, or after a week if you closed a session midway.
 - `./start.sh` first asks for your language: English or Русский. In Russian, the questions, the review
   page, Claude's messages and the notes are all in Russian.
 - Google Maps in English, Spanish or Russian all work. The language is picked up from your Google account.
