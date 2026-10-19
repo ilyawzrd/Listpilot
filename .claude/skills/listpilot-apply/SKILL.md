@@ -1,6 +1,6 @@
 ---
 name: listpilot-apply
-description: Use when the user wants places from a .md file (a research report, a chat answer, a list of recommendations, or a listpilot-research places file) added to a Google Maps saved list, or an existing list updated, with notes. Builds plan.json, then hands it to listpilot-run to apply with this repo's deterministic executor.
+description: Use when the user wants places from a .md file (a research report, a chat answer, a list of recommendations, or a listpilot-research places file) added to a Google Maps saved list, or an existing list updated, with notes. Opens the review page (checkboxes, editable notes) for a file that wasn't reviewed yet, builds plan.json, then hands it to listpilot-run to apply with this repo's deterministic executor.
 argument-hint: <file.md> ["List name"] [--yes] [--account <email>] [--lang ru]
 model: sonnet
 effort: medium
@@ -8,7 +8,8 @@ effort: medium
 
 # Markdown → Google Maps list
 
-You do the judgment work: parse, resolve, build `plan.json`. Then `listpilot-run` (on a smaller
+You do the judgment work: parse, let the user review the places on the review page, resolve,
+build `plan.json`. Then `listpilot-run` (on a smaller
 model) runs the executor (`npm run dry` / `npm run apply`), which only clicks.
 
 ## Input
@@ -44,7 +45,7 @@ session started from a terminal with Full Disk Access.
    **A `*.places.md` from `listpilot-research`** is already in this shape: `# ` is the list name,
    `## ` sections are categories, and each bullet is `**Name** (area): note`. Use its notes as
    written, put the `(area)` into the resolve query, and treat `(all branches)` as a chain
-   (step 3: add every location).
+   (step 4: add every location).
 2. **List name.** Use the name from the arguments if given. Otherwise use the file's
    top-level title, or ask the user if there is none. Ask for an emoji only if the user
    mentioned one. **At most 40 characters:** Maps cuts longer names, and the executor then
@@ -52,7 +53,33 @@ session started from a terminal with Full Disk Access.
    ("Where to Eat & Drink in Los Angeles (October 2026)" → "LA Eat & Drink (Oct 2026)";
    «Куда сходить поесть и выпить в Санкт-Петербурге (октябрь 2026)» → «Еда и бары СПб (окт 2026)»);
    say what you picked. A longer name from the arguments: ask for a shorter one.
-3. **Resolve every place to a `/maps/place/` URL** and put it in `url`. Use `query` only when
+3. **Review page.** Skip this step for a `*.places.md`: it comes from `listpilot-research` and was
+   already reviewed on this page. Every other file goes through it.
+   - Write `research/<slug>-<YYYYMMDD>.json`, with the slug from the file's basename (ASCII only,
+     e.g. `research/la-eats-20261019.json`). The schema is `ResearchSchema` in `src/review.ts`
+     (sample: `examples/research.example.json`), filled from step 1:
+     - `lang`: `"ru"` with `--lang ru`, otherwise leave it out. It sets the page's language.
+     - `list`: the name from step 2.
+     - `places[]`, in the file's order: `section` (the file's heading for it, or `""`), `name`,
+       `area` (the street or neighbourhood the file gives, `all branches` for a chain the file
+       doesn't pin to one branch, or `""`), `note` (in note style), `details` (the place's own text
+       from the file when it says more than the note, otherwise `""`). Leave out `sources` and
+       `excluded`.
+   - Validate with `npm run -s review -- --check <json>` and fix any reported field.
+   - Tell the user in one line that a page is opening in their browser to untick places and edit
+     notes. Then run `npm run review -- <json>` with Bash, `timeout: 600000`, and act on the exit code:
+     - `0`: the page wrote `research/<slug>-<YYYYMMDD>.places.md` and printed a summary
+       ("Kept 11 of 13 …"). Repeat it in one line. From here on, work from that `.places.md`
+       (its places and notes as written, `(area)` and `(all branches)` as in step 1), not from the
+       original file.
+     - `3`: the page is still open (a command can't run longer than 10 minutes). Run
+       `npm run review -- <json> --resume` straight away, without saying anything, as often as
+       needed. The page keeps its state and reconnects.
+     - `2` (cancelled in the page) or `4` (tab closed): ask with `AskUserQuestion` (header
+       `Review`, in Russian `Проверка`): **Reopen the page** (run it again without `--resume`) /
+       **Stop** (in Russian **Открыть снова** / **Стоп**).
+     - `1`: the JSON is invalid. Fix it and run again.
+4. **Resolve every place to a `/maps/place/` URL** and put it in `url`. Use `query` only when
    the search will land on one unambiguous place. Anything ambiguous goes in a list for the
    user. Never guess a match. Resolve without Chrome: write one query per line
    (`<name> <area> <city>`) to a file in your scratchpad and run
@@ -66,11 +93,11 @@ session started from a terminal with Full Disk Access.
      Give all branches of one chain the **same note**, because the list view shows them with
      the same name and can't tell them apart. A search that returns several results for a name
      is often a chain: find its branch addresses, don't drop it.
-4. **Write `plan.json`** in the repo root (it is gitignored). If one already exists, copy it
+5. **Write `plan.json`** in the repo root (it is gitignored). If one already exists, copy it
    to `plan.<YYYYMMDD-HHMM>.json` first (also gitignored). The schema is in `src/plan.ts` and a
    sample is in `examples/plan.example.json`. Validate it with
    `npx tsx -e "import {PlanSchema} from './src/plan.ts'; import fs from 'fs'; PlanSchema.parse(JSON.parse(fs.readFileSync('plan.json','utf8')))"`.
-5. **Write the handoff** to `artifacts/plan-summary.md`, a few plain lines that
+6. **Write the handoff** to `artifacts/plan-summary.md`, a few plain lines that
    `listpilot-run` shows as is: the list name, whether it's new or already exists (it exists if
    `.gmaps-state.json` has it, or if the user says so), the number of places and chain branches,
    and each unresolved place with what was found for it. For a **new** list, also list every
@@ -78,7 +105,7 @@ session started from a terminal with Full Disk Access.
    That's the preview, since a dry run of a new list adds nothing. For an **update**, add the
    two limits from "New list vs. update" below. In Russian, write the whole summary in Russian
    («Список: … (новый)», «Мест: 12, из них филиалов сети: 3», «Не найдено: …»).
-6. **Hand off to `listpilot-run`.** Invoke the `listpilot-run` skill with the plan path, plus
+7. **Hand off to `listpilot-run`.** Invoke the `listpilot-run` skill with the plan path, plus
    `--yes`, `--account <email>` and `--lang ru` if they were given. It runs on a smaller model and does the
    rest: the Apply / Dry run question, Chrome checks, the run and the report.
 
@@ -98,6 +125,7 @@ states two limits:
 - Never delete places or lists, never change sharing. The executor has no code path for
   either.
 - Ambiguous places become **unresolved**. Never guess.
+- Don't write the `.places.md` yourself; the review page writes it from the user's choices.
 - Never run `npm run dry` / `npm run apply` from this skill. That's `listpilot-run`'s job, and it
   always asks Apply / Dry run first. Use a throwaway list (e.g. `zz-executor-test`) when testing writes.
 - Single-quote Maps URLs in zsh (`!` triggers history expansion in double quotes).

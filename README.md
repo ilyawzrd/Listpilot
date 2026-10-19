@@ -51,7 +51,8 @@ to your list) or do a **Dry run** (just show what would change). Chrome then ask
 connection. Click it, and Claude saves the places and checks that everything arrived.
 
 **Already have a list of places?** If it's in a text file (`.md`), pick the file option in `./start.sh`
-instead. You can drag the file into the terminal window. There's no review page in this mode.
+instead. You can drag the file into the terminal window. The same review page opens with the places
+from your file, so you can untick some and edit notes before anything goes to Maps.
 
 ## Good to know
 

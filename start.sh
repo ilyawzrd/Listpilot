@@ -92,6 +92,7 @@ next_steps() { # next_steps <research|md>
       echo "  $((n++)). В браузере откроется страница проверки: снимите лишние галочки, поправьте заметки, нажмите «Продолжить»."
     else
       echo "  $((n++)). Claude читает ${md_path##*/} и выбирает места и заметки к ним."
+      echo "  $((n++)). В браузере откроется страница проверки: снимите лишние галочки, поправьте заметки, нажмите «Продолжить»."
     fi
     echo "  $((n++)). Claude находит каждое место в Google Картах и показывает, что нашёл."
     echo "  $((n++)). Шаг с Картами: Claude проверяет, включена ли удалённая отладка Chrome. Если нет, Claude"
@@ -109,6 +110,7 @@ next_steps() { # next_steps <research|md>
     echo "  $((n++)). A review page opens in your browser: untick places, edit notes, press Continue."
   else
     echo "  $((n++)). Claude reads ${md_path##*/} and picks out the places and their notes."
+    echo "  $((n++)). A review page opens in your browser: untick places, edit notes, press Continue."
   fi
   echo "  $((n++)). Claude looks each place up on Google Maps and shows what it found."
   echo "  $((n++)). Maps step: Claude checks that Chrome's remote debugging is on. If it's off, Claude opens"

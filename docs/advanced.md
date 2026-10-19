@@ -64,8 +64,10 @@ claude '/listpilot-research bakeries in Lisbon "Lisbon Bakeries"'  # research fi
 
 You can also just ask in plain words instead of using the slash command.
 
-**From an .md file.** Claude turns the file into `plan.json` (see
-[`examples/places.example.md`](../examples/places.example.md)), looks up each place on Maps
+**From an .md file.** Claude reads the places and notes from the file (see
+[`examples/places.example.md`](../examples/places.example.md)) and opens the same review page as
+research does (`research/<slug>.json` → `research/<slug>.places.md`; skipped for a `*.places.md`,
+which was already reviewed). Then it turns your choices into `plan.json`, looks up each place on Maps
 (`npm run resolve`) and flags anything ambiguous. Then it asks whether to **apply** (writes) or do a
 **dry run** (reads only), runs it in your Chrome and reports.
 
