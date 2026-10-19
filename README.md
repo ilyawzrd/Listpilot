@@ -38,7 +38,8 @@ Pick **research places**, then answer five short questions:
 5/5 Model: opus (best research) or sonnet (cheaper)? [opus]
 ```
 
-Claude researches local guides, press and Reddit, and skips tourist traps, viral spots and closed places.
+Claude researches local guides, press, Telegram channels and Reddit, and skips tourist traps, viral spots
+and closed places.
 When it's done, a **review page** opens in your browser:
 
 - Tick the places you want and edit their notes. The note is what shows up in Maps.
@@ -59,6 +60,8 @@ instead. You can drag the file into the terminal window. There's no review page 
 - If a place already has a note, the new note is added after it, not written over it.
 - If Claude can't tell for sure which place is meant, it skips it and tells you. It never guesses.
 - List names can be at most 40 characters.
+- `./start.sh` first asks for your language: English or Русский. In Russian, the questions, the review
+  page, Claude's messages and the notes are all in Russian.
 - Google Maps in English, Spanish or Russian all work. The language is picked up from your Google account.
 - Run it from the Terminal app, not from inside an editor like VS Code. Editors can't reach Chrome's settings.
 

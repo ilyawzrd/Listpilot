@@ -4,10 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import {
-  applyChoices, buildPlacesMd, inline, loadResearch, placesPath, renderPage, ResearchSchema, serve, summarize,
+  applyChoices, buildPlacesMd, inline, loadResearch, placesPath, plural, renderPage, ResearchSchema, serve, summarize,
 } from "./review.js";
 
 const EXAMPLE = "examples/research.example.json";
+const EXAMPLE_RU = "examples/research.example.ru.json";
 
 test("schema accepts the example and rejects bad links and long list names", async () => {
   const r = await loadResearch(EXAMPLE);
@@ -17,6 +18,30 @@ test("schema accepts the example and rejects bad links and long list names", asy
   raw.places[0].sources = [{ title: "x", url: "javascript:alert(1)" }];
   assert.equal(ResearchSchema.safeParse(raw).success, false);
   assert.equal(ResearchSchema.safeParse({ ...raw, list: "x".repeat(41) }).success, false);
+  assert.equal(r.lang, "en");
+});
+
+test("Russian page: lang, strings, «все филиалы» for the all-branches token, Cyrillic list names count letters", async () => {
+  const r = await loadResearch(EXAMPLE_RU);
+  assert.equal(r.lang, "ru");
+  const html = renderPage(r);
+  assert.ok(html.includes('<html lang="ru">'));
+  assert.ok(html.includes("Отсеяно (1)"));
+  assert.ok(html.includes(">Отмена</button>"));
+  assert.ok(html.includes("Продолжить: 2 места →"));
+  assert.ok(html.includes('<span class="area">все филиалы</span>'));
+  assert.ok(!html.includes("Filtered out"));
+  assert.equal(buildPlacesMd(r).split("\n")[4], "- **Manteigaria** (all branches): Паштел-де-ната прямо из печи; есть стоя у стойки.");
+  const raw = JSON.parse(await fs.readFile(EXAMPLE_RU, "utf8"));
+  assert.equal(ResearchSchema.safeParse({ ...raw, list: "ж".repeat(40) }).success, true);
+  assert.equal(ResearchSchema.safeParse({ ...raw, list: "ж".repeat(41) }).success, false);
+  assert.equal(ResearchSchema.safeParse({ ...raw, lang: "de" }).success, false);
+});
+
+test("plural: Russian one/few/many", () => {
+  assert.deepEqual([1, 3, 5, 11, 12, 21, 22, 25, 111].map((n) => plural("ru", n)),
+    ["1 место", "3 места", "5 мест", "11 мест", "12 мест", "21 место", "22 места", "25 мест", "111 мест"]);
+  assert.deepEqual([1, 2].map((n) => plural("en", n)), ["1 place", "2 places"]);
 });
 
 test("buildPlacesMd keeps ticked items, a ticked filtered-out one and edited notes, in section order", async () => {

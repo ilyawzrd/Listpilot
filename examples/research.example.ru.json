@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "lang": "ru",
+  "list": "Пекарни Лиссабона",
+  "places": [
+    {
+      "section": "Пекарни",
+      "name": "Manteigaria",
+      "area": "all branches",
+      "note": "Паштел-де-ната прямо из печи; есть стоя у стойки.",
+      "details": "Местные сравнивают с ней все остальные паштелы. Когда выходит свежая партия, звонит колокольчик.\n\nВ филиал в Шиаду около полудня приходят экскурсии: идите с утра или в другой филиал.",
+      "sources": [
+        { "title": "Time Out Lisbon: best pastéis de nata", "url": "https://www.timeout.com/lisbon/restaurants/best-pasteis-de-nata-in-lisbon" }
+      ]
+    },
+    {
+      "section": "Кофе",
+      "name": "Copenhagen Coffee Lab",
+      "area": "Príncipe Real",
+      "note": "Флэт уайт и булочка с кардамоном; с ноутбуком можно до 11.",
+      "details": "Скандинавская обжарка с несколькими кофейнями; в Príncipe Real больше всего мест.",
+      "sources": []
+    }
+  ],
+  "excluded": [
+    {
+      "section": "Пекарни",
+      "name": "Fábrica da Nata",
+      "area": "Restauradores",
+      "note": "",
+      "details": "Крупная сеть паштелов на главной туристической улице.",
+      "reason": "trap: на главной туристической площади; местные считают её переоценённой.",
+      "sources": []
+    }
+  ]
+}

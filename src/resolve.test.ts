@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseCandidates, placeUrl } from "./resolve.js";
+import { parseCandidates, placeUrl, searchUrl } from "./resolve.js";
 
 // Hand-trimmed in the shape of a real /search?tbm=map response.
 const RESPONSE = String.raw`)]}'
@@ -23,4 +23,9 @@ test("placeUrl builds a /maps/place/ link the plan schema accepts", () => {
     placeUrl("Saffron & Rose", "0x1:0x2"),
     "https://www.google.com/maps/place/Saffron+%26+Rose/data=!4m2!3m1!1s0x1:0x2",
   );
+});
+
+test("searchUrl asks Maps in the chosen language, English by default", () => {
+  assert.equal(searchUrl("Кофемания Москва"), `https://www.google.com/maps/search/?api=1&hl=en&query=${encodeURIComponent("Кофемания Москва")}`);
+  assert.ok(searchUrl("Кофемания Москва", "ru").includes("&hl=ru&"));
 });

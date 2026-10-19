@@ -1,7 +1,7 @@
 ---
 name: listpilot-run
 description: Use when a validated plan.json is ready (usually handed over by listpilot-apply) and the user wants it dry-run or applied to Google Maps through their Chrome, or wants the last run's report. Runs the executor and reports; makes no judgment calls.
-argument-hint: [plan.json] [--yes] [--account <email>] [--report]
+argument-hint: [plan.json] [--yes] [--account <email>] [--report] [--lang ru]
 model: haiku
 effort: medium
 ---
@@ -19,6 +19,10 @@ places, and don't guess. When something looks wrong, report it and stop.
 - **Plan path:** defaults to `plan.json` in the repo root.
 - **`--yes`:** after a dry run, apply without asking again.
 - **`--account <email>`:** add it to every `npm run dry` / `npm run apply` command.
+- **`--lang ru`:** talk to the user in Russian and use the Russian strings given below for every
+  question and the report. Without it, use the language the user writes in. **Never pass this
+  `--lang` to `npm run dry` / `npm run apply`:** their own `--lang` is the Maps UI language and
+  stays at its default (`auto`).
 - **`--report`:** skip to step 4. Read the last `artifacts/report.json` and report it (e.g. after
   the user ran the command in their own terminal).
 
@@ -34,6 +38,9 @@ places, and don't guess. When something looks wrong, report it and stop.
    - **Dry run:** optional. Opens every place in Chrome and reads its Save dialog to show what's
      new and what's already in the list. Writes nothing.
    - **Stop:** leaves the plan for later.
+
+   In Russian: header `Режим`; **Применить (рекомендуется)** / **Пробный прогон** / **Стоп**, with
+   the descriptions above translated.
 2. **Check Chrome's remote debugging.** Skip this if the user runs a dedicated profile
    (`npm run chrome`, no `--cdp auto`). Run exactly
    `ls "$HOME/Library/Application Support/Google/Chrome/DevToolsActivePort" 2>&1`. Never `cat`
@@ -42,9 +49,11 @@ places, and don't guess. When something looks wrong, report it and stop.
    - **`No such file or directory`:** the toggle is off. Ask with `AskUserQuestion` (header `Chrome`):
      **Open the settings page** (run `open -a "Google Chrome" "chrome://inspect/#remote-debugging"`,
      wait for the user to turn the toggle on and say continue, then check once more) /
-     **It's already on** (go on) / **Cancel** (stop).
+     **It's already on** (go on) / **Cancel** (stop). In Russian: header `Chrome`;
+     **Открыть настройки** / **Уже включено** / **Отмена**.
    - **`Operation not permitted`:** no Full Disk Access. Go on; step 3 handles it.
-3. **Run.** Tell the user to click **Allow** in Chrome when it asks. Then run from the repo root with Bash,
+3. **Run.** Tell the user to click **Allow** in Chrome when it asks (in Russian: «Когда Chrome
+   спросит, нажмите **Allow** (Разрешить)»; the button may be in Chrome's own language). Then run from the repo root with Bash,
    with `timeout: 600000`:
    - Dry run: `npm run dry -- plan.json --cdp auto`
    - Apply: `npm run apply -- plan.json --cdp auto`
@@ -66,6 +75,18 @@ places, and don't guess. When something looks wrong, report it and stop.
    Verify: ok | missing <names> | notes missing <names>   ← verify (apply only)
    Warnings: <warnings>
    ```
+   In Russian, the same template with these labels:
+   ```
+   <Пробный прогон | Применение> — <list>  (создан: да/нет)
+   Добавлено: N                 (пробный прогон: будет добавлено N)
+   Уже в списке: N
+   Заметок записано: N
+   Не найдено: N — <name: reason>
+   Ошибки: N — <name: reason>
+   Проверка: ок | нет мест <names> | нет заметок <names>
+   Предупреждения: <warnings>
+   ```
+   Place names stay as the report has them; translate the reasons and warnings.
    Exit code 2 means verification found missing places or notes. For a failure, read the
    matching `artifacts/*-fail-*.yaml` to give the reason in a few words. Never paste the yaml:
    it contains the account email.
@@ -73,7 +94,7 @@ places, and don't guess. When something looks wrong, report it and stop.
      which ones. If several places failed with "Page crashed", say the Chrome tab crashed (not the
      places) and keep them in the plan. Then, unless `--yes` was given, ask with `AskUserQuestion`
      (header `Next`): **Apply now** / **Stop** (Stop leaves the plan for a later
-     `npm run apply`). With `--yes`, go straight to step 3 with Apply.
+     `npm run apply`). In Russian: header `Дальше`; **Применить сейчас** / **Стоп**. With `--yes`, go straight to step 3 with Apply.
    - **After apply:** list whatever `verify` found missing and offer to retry just those, with a
      plan containing only those places (`plan.retry.json`, same list name; places already saved
      are skipped anyway).
@@ -81,7 +102,7 @@ places, and don't guess. When something looks wrong, report it and stop.
      `npm run -s clean` and add its last line to the report ("Cleaned 14 items; kept
      research/….places.md"). Never clean after a dry run or a failed apply: the retry and the
      failure artifacts need those files. End those reports with "Run `npm run clean` when you're
-     done."
+     done." (in Russian: «Когда закончите, запустите `npm run clean`.»)
 
 ## New list vs. update
 

@@ -9,15 +9,20 @@ import { ARTIFACTS } from "./maps.js";
  *
  *   npm run resolve -- queries.txt            # one query per line
  *   npm run resolve -- --query "Langer's Deli Los Angeles"
+ *   npm run resolve -- queries.txt --lang ru  # names and addresses in Russian
  */
 
 export type Candidate = { name: string; address: string; id: string; url: string };
+export type Lang = "en" | "ru";
 
-const HEADERS = {
+const headers = (lang: Lang) => ({
   "user-agent":
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36",
-  "accept-language": "en",
-};
+  "accept-language": lang,
+});
+
+export const searchUrl = (query: string, lang: Lang = "en") =>
+  `https://www.google.com/maps/search/?api=1&hl=${lang}&query=${encodeURIComponent(query)}`;
 
 export const placeUrl = (name: string, id: string) =>
   `https://www.google.com/maps/place/${encodeURIComponent(name).replace(/%20/g, "+")}/data=!4m2!3m1!1s${id}`;
@@ -45,34 +50,36 @@ export function parseCandidates(text: string): Candidate[] {
   return out;
 }
 
-export async function search(query: string): Promise<Candidate[]> {
-  const page = await fetch(
-    `https://www.google.com/maps/search/?api=1&hl=en&query=${encodeURIComponent(query)}`,
-    { headers: HEADERS },
-  );
+export async function search(query: string, lang: Lang = "en"): Promise<Candidate[]> {
+  const page = await fetch(searchUrl(query, lang), { headers: headers(lang) });
   const link = (await page.text()).match(/\/search\?tbm=map[^"']+/)?.[0];
   if (!link) return [];
-  const data = await fetch(`https://www.google.com${link.replace(/&amp;/g, "&")}`, { headers: HEADERS });
+  const data = await fetch(`https://www.google.com${link.replace(/&amp;/g, "&")}`, { headers: headers(lang) });
   return parseCandidates(await data.text());
 }
 
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
-    options: { query: { type: "string", multiple: true } },
+    options: { query: { type: "string", multiple: true }, lang: { type: "string", default: "en" } },
   });
+  const lang = values.lang as Lang;
+  if (lang !== "en" && lang !== "ru") {
+    console.error(`--lang must be en or ru, got "${values.lang}"`);
+    process.exit(1);
+  }
   const queries = [...(values.query ?? [])];
   for (const file of positionals) {
     queries.push(...(await fs.readFile(file, "utf8")).split("\n").map((l) => l.trim()).filter(Boolean));
   }
   if (!queries.length) {
-    console.error('usage: npm run resolve -- <queries.txt> | --query "<place, city>"');
+    console.error('usage: npm run resolve -- <queries.txt> | --query "<place, city>" [--lang en|ru]');
     process.exit(1);
   }
 
   const results: Record<string, Candidate[] | { error: string }> = {};
   for (const q of queries) {
-    results[q] = await search(q).catch((e: Error) => ({ error: e.message }));
+    results[q] = await search(q, lang).catch((e: Error) => ({ error: e.message }));
     const r = results[q]!;
     console.log(`## ${q}`);
     if ("error" in r) console.log(`  ERROR ${r.error}`);

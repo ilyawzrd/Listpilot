@@ -36,6 +36,8 @@ const ItemSchema = z.object({
 });
 export const ResearchSchema = z.object({
   version: z.literal(1),
+  /** Language of the review page (and of the notes the research wrote). */
+  lang: z.enum(["en", "ru"]).default("en"),
   list: z.string().min(1).max(MAX_LIST_NAME, `Maps cuts list names at ${MAX_LIST_NAME} characters; shorten it`),
   places: z.array(ItemSchema).min(1),
   /** Filtered out by the research (trap, viral, closed, thin evidence); shown unticked. */
@@ -99,6 +101,51 @@ export function summarize(before: Research, after: Research): string {
 
 // ── page ─────────────────────────────────────────────────────────────────────
 
+/** "1 place" / "3 места" / "5 мест": English has two forms, Russian three. */
+export function plural(lang: Research["lang"], n: number): string {
+  if (lang === "en") return `${n} ${n === 1 ? "place" : "places"}`;
+  const a = n % 10, b = n % 100;
+  return `${n} ${a === 1 && b !== 11 ? "место" : a >= 2 && a <= 4 && (b < 12 || b > 14) ? "места" : "мест"}`;
+}
+
+const UI = {
+  en: {
+    hint: "Untick what you don't want, edit notes, click a place for details, then Continue.",
+    filtered: "Filtered out",
+    details: "Details ▾",
+    hide: "Hide ▴",
+    placeholder: "Note for Google Maps (optional)",
+    keep: "Keep",
+    noteFor: "Note for",
+    cancel: "Cancel",
+    allBranches: "all branches",
+    go: (n: number) => (n ? `Continue with ${plural("en", n)} →` : "Nothing selected"),
+    reconnecting: "Reconnecting to Claude… your changes are kept.",
+    sending: "Sending…",
+    sent: "Sent to Claude",
+    cancelled: "Cancelled",
+    close: "You can close this tab.",
+  },
+  ru: {
+    hint: "Снимите галочки с лишнего, поправьте заметки, нажмите на место, чтобы узнать подробности, затем «Продолжить».",
+    filtered: "Отсеяно",
+    details: "Подробнее ▾",
+    hide: "Свернуть ▴",
+    placeholder: "Заметка для Google Карт (необязательно)",
+    keep: "Оставить",
+    noteFor: "Заметка для",
+    cancel: "Отмена",
+    allBranches: "все филиалы",
+    go: (n: number) => (n ? `Продолжить: ${plural("ru", n)} →` : "Ничего не выбрано"),
+    reconnecting: "Переподключаюсь к Claude… изменения сохранены.",
+    sending: "Отправляю…",
+    sent: "Отправлено в Claude",
+    cancelled: "Отменено",
+    close: "Эту вкладку можно закрыть.",
+  },
+};
+type Strings = (typeof UI)["en"];
+
 export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -131,28 +178,28 @@ export function inline(s: string): string {
   return out.join("");
 }
 
-function card(id: string, it: Item, keep: boolean): string {
+function card(id: string, it: Item, keep: boolean, t: Strings): string {
   const details = it.details.split(/\n{2,}/).filter((p) => p.trim()).map((p) => `<p>${inline(p.trim())}</p>`).join("");
   const sources = it.sources.length
     ? `<ul class="sources">${it.sources.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join("")}</ul>`
     : "";
   const more = details || sources;
   return `<li class="card${keep ? "" : " off"}" data-id="${id}">
-<input type="checkbox" class="tick"${keep ? " checked" : ""} aria-label="Keep ${esc(it.name)}">
+<input type="checkbox" class="tick"${keep ? " checked" : ""} aria-label="${t.keep} ${esc(it.name)}">
 <div class="body">
-<button type="button" class="name"${more ? ' aria-expanded="false"' : " disabled"}>${esc(it.name)}${it.area ? `<span class="area">${esc(it.area)}</span>` : ""}${more ? '<span class="chev" aria-hidden="true"></span>' : ""}</button>
+<button type="button" class="name"${more ? ' aria-expanded="false"' : " disabled"}>${esc(it.name)}${it.area ? `<span class="area">${esc(it.area === "all branches" ? t.allBranches : it.area)}</span>` : ""}${more ? '<span class="chev" aria-hidden="true"></span>' : ""}</button>
 ${it.reason ? `<p class="reason">${inline(it.reason)}</p>` : ""}
 ${more ? `<div class="details" hidden>${details}${sources}</div>` : ""}
-<textarea class="note" rows="1" placeholder="Note for Google Maps (optional)" aria-label="Note for ${esc(it.name)}">${esc(it.note)}</textarea>
+<textarea class="note" rows="1" placeholder="${t.placeholder}" aria-label="${t.noteFor} ${esc(it.name)}">${esc(it.note)}</textarea>
 </div>
 </li>`;
 }
 
-function sectioned(items: { id: string; it: Item; keep: boolean }[], level: "h2" | "h3"): string {
+function sectioned(items: { id: string; it: Item; keep: boolean }[], level: "h2" | "h3", t: Strings): string {
   const sections = [...new Set(items.map((e) => e.it.section))];
   return sections.map((s) =>
     (s ? `<${level}>${esc(s)}</${level}>` : "") +
-    `<ul class="cards">${items.filter((e) => e.it.section === s).map((e) => card(e.id, e.it, e.keep)).join("")}</ul>`,
+    `<ul class="cards">${items.filter((e) => e.it.section === s).map((e) => card(e.id, e.it, e.keep, t)).join("")}</ul>`,
   ).join("\n");
 }
 
@@ -176,8 +223,7 @@ h3 { font-size:1rem; margin:20px 0 8px; }
 .name:disabled { cursor:default; }
 .name:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
 .area { color:var(--muted); font-weight:400; font-size:.9rem; }
-.chev::before { content:"Details ▾"; color:var(--accent); font-weight:400; font-size:.85rem; }
-.name[aria-expanded="true"] .chev::before { content:"Hide ▴"; }
+.chev::before { color:var(--accent); font-weight:400; font-size:.85rem; }
 .reason { margin:2px 0 0; color:var(--muted); font-size:.9rem; }
 .details { margin:6px 0 2px; font-size:.95rem; }
 .details p { margin:0 0 6px; }
@@ -196,8 +242,8 @@ button.btn:disabled { opacity:.5; cursor:default; }
 .done { text-align:center; padding:80px 16px; }
 `;
 
-// Runs in the browser. No \${} in here (this is a TS template literal), and no global named
-// `status`: that's window.status, which only holds strings.
+// Runs in the browser, after renderPage's `var L = {...}` (the page strings). No \${} in here (this
+// is a TS template literal), and no global named `status`: that's window.status, which only holds strings.
 const SCRIPT = `
 var T = new URLSearchParams(location.search).get("t");
 var done = false;
@@ -208,7 +254,7 @@ function post(path, body) {
 function grow(el) { el.style.height = "auto"; el.style.height = el.scrollHeight + 2 + "px"; }
 function count() {
   var n = document.querySelectorAll(".tick:checked").length;
-  go.textContent = n ? "Continue with " + n + (n === 1 ? " place" : " places") + " \\u2192" : "Nothing selected";
+  go.textContent = L.go[n];
   go.disabled = n === 0 || done;
 }
 document.querySelectorAll(".note").forEach(function (el) { grow(el); el.addEventListener("input", function () { grow(el); }); });
@@ -223,18 +269,21 @@ document.querySelectorAll(".name[aria-expanded]").forEach(function (b) {
     b.closest(".body").querySelector(".details").hidden = open;
   });
 });
-function online(ok) { if (!done) statusEl.textContent = ok ? "" : "Reconnecting to Claude\\u2026 your changes are kept."; }
+function online(ok) { if (!done) statusEl.textContent = ok ? "" : L.reconnecting; }
 function ping() { if (done) return; post("/ping").then(function (r) { online(r.ok); }, function () { online(false); }); }
 setInterval(ping, 10000); ping();
 function send(path, body, message) {
   done = true; go.disabled = true; document.getElementById("cancel").disabled = true;
-  statusEl.textContent = "Sending\\u2026";
+  statusEl.textContent = L.sending;
   post(path, body).then(function (r) {
     if (!r.ok) throw new Error(String(r.status));
-    document.querySelector("main").innerHTML = '<div class="done"><h1>' + message + '</h1><p class="hint">You can close this tab.</p></div>';
+    var box = document.createElement("div"), h = document.createElement("h1"), p = document.createElement("p");
+    box.className = "done"; h.textContent = message; p.className = "hint"; p.textContent = L.close;
+    box.append(h, p);
+    document.querySelector("main").replaceChildren(box);
     document.querySelector("footer").remove();
   }).catch(function () {
-    statusEl.textContent = "Reconnecting to Claude\\u2026 your changes are kept.";
+    statusEl.textContent = L.reconnecting;
     setTimeout(function () { send(path, body, message); }, 2000);
   });
 }
@@ -243,9 +292,9 @@ go.addEventListener("click", function () {
   document.querySelectorAll(".card").forEach(function (c) {
     items.push({ id: c.dataset.id, keep: c.querySelector(".tick").checked, note: c.querySelector(".note").value });
   });
-  send("/submit", { items: items }, "Sent to Claude");
+  send("/submit", { items: items }, L.sent);
 });
-document.getElementById("cancel").addEventListener("click", function () { send("/cancel", {}, "Cancelled"); });
+document.getElementById("cancel").addEventListener("click", function () { send("/cancel", {}, L.cancelled); });
 count();
 `;
 
@@ -253,17 +302,27 @@ export function renderPage(r: Research): string {
   const all = entries(r);
   const places = all.filter((e) => e.id.startsWith("p"));
   const filtered = all.filter((e) => e.id.startsWith("x"));
+  const t = UI[r.lang];
+  // Client-side strings; "go" is precomputed for every count, so the page needs no plural rules.
+  const L = {
+    go: Array.from({ length: all.length + 1 }, (_, n) => t.go(n)),
+    reconnecting: t.reconnecting, sending: t.sending, sent: t.sent, cancelled: t.cancelled, close: t.close,
+  };
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(r.list)}</title><style>${CSS}</style></head>
+<html lang="${r.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(r.list)}</title><style>${CSS}
+.chev::before { content:${JSON.stringify(t.details)}; }
+.name[aria-expanded="true"] .chev::before { content:${JSON.stringify(t.hide)}; }
+</style></head>
 <body><main>
 <h1>${esc(r.list)}</h1>
-<p class="hint">Untick what you don't want, edit notes, click a place for details, then Continue.</p>
-${sectioned(places, "h2")}
-${filtered.length ? `<details class="filtered"><summary>Filtered out (${filtered.length})</summary>\n${sectioned(filtered, "h3")}</details>` : ""}
+<p class="hint">${t.hint}</p>
+${sectioned(places, "h2", t)}
+${filtered.length ? `<details class="filtered"><summary>${t.filtered} (${filtered.length})</summary>\n${sectioned(filtered, "h3", t)}</details>` : ""}
 </main>
-<footer><div class="bar"><span id="status" role="status"></span><button type="button" class="btn" id="cancel">Cancel</button><button type="button" class="btn primary" id="go">Continue</button></div></footer>
-<script>${SCRIPT}</script>
+<footer><div class="bar"><span id="status" role="status"></span><button type="button" class="btn" id="cancel">${t.cancel}</button><button type="button" class="btn primary" id="go">${t.go(places.length)}</button></div></footer>
+<script>var L = ${JSON.stringify(L).replace(/</g, "\\u003c")};
+${SCRIPT}</script>
 </body></html>
 `;
 }

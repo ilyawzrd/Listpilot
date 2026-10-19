@@ -5,7 +5,7 @@ ways of connecting to Chrome, running steps by hand, flags, and development.
 
 ## How it works
 
-1. **Research** (optional): Claude researches local press, guides and Reddit, filters out tourist traps,
+1. **Research** (optional): Claude researches local press, guides, Telegram and Reddit, filters out tourist traps,
    viral spots and closed places, and opens a **review page**. There you tick places and edit notes.
 2. **Resolve**: Claude looks each place up on Google Maps and writes a `plan.json`.
 3. **Apply**: a deterministic executor (Playwright attached to your Chrome over CDP) creates or updates
@@ -80,7 +80,10 @@ You can also just ask in plain words instead of using the slash command.
 
 **Research first.** `/listpilot-research <what> in <where>` runs the `deep-research`
 skill (parallel research agents, similar to desktop Research mode; takes minutes). It covers local
-press, guides and Reddit (from search snippets, since Reddit blocks direct fetches). Add `--quick`
+press, guides, Reddit (from search snippets, since Reddit blocks direct fetches) and Telegram
+channels (through their public `t.me/s/<channel>` preview). In Russian-speaking cities it searches in
+Russian first and adds Russian food media, Yandex Maps / 2GIS review snippets and Telegram as a
+primary source. Add `--quick`
 for a single faster pass that finds fewer places. It then drops tourist traps,
 viral TikTok spots and closed places, and keeps places with at least two independent sources. It
 writes the result to `research/<slug>.json` (gitignored; schema in `src/review.ts`, sample in
@@ -88,8 +91,25 @@ writes the result to `research/<slug>.json` (gitignored; schema in `src/review.t
 `npm run review -- research/<slug>.json`, which serves it on 127.0.0.1 only while you review. Your
 choices become `research/<slug>.places.md`, which goes into `/listpilot-apply`.
 
-In `./start.sh`, if What looks like it includes a place ("bakeries in Lisbon"), it offers to move the
-place to Where.
+In `./start.sh`, if What looks like it includes a place ("bakeries in Lisbon", «пекарни в
+Лиссабоне»), it offers to move the place to Where.
+
+### Russian
+
+`./start.sh` asks for the language first (English / Русский). Russian passes `--lang ru` to the
+skills, which you can also add yourself:
+`claude '/listpilot-research пекарни в Лиссабоне "Пекарни Лиссабона" --lang ru'`. Then:
+
+- Claude asks and reports in Russian, and the research writes Russian notes and details.
+- The research file gets `"lang": "ru"`, so the review page is in Russian (sample:
+  [`examples/research.example.ru.json`](../examples/research.example.ru.json)). Machine tokens stay
+  English: `area: "all branches"` (shown as «все филиалы») and the `trap:`/`viral:`/`closed:`/`thin
+  evidence:` reason prefixes.
+- `listpilot-apply` keeps notes in the source file's language and resolves with `--lang ru`.
+- This `--lang` is only the conversation language. The executor's own `--lang` (Maps UI, below) stays
+  `auto` and follows the Google account.
+
+Without the flag, each skill answers in the language you write in.
 
 ### Models and effort
 
@@ -135,6 +155,7 @@ To look up places on their own, without Chrome:
 ```bash
 npm run resolve -- --query "Langer's Deli Los Angeles"   # candidates with name, address and Maps URL
 npm run resolve -- queries.txt                           # one query per line; full results in artifacts/resolve.json
+npm run resolve -- queries.txt --lang ru                 # names and addresses in Russian (default: en)
 ```
 
 A tab that loads about 70 Maps places gets its renderer killed ("Page crashed"), so `apply` opens

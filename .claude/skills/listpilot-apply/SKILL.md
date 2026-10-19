@@ -1,7 +1,7 @@
 ---
 name: listpilot-apply
 description: Use when the user wants places from a .md file (a research report, a chat answer, a list of recommendations, or a listpilot-research places file) added to a Google Maps saved list, or an existing list updated, with notes. Builds plan.json, then hands it to listpilot-run to apply with this repo's deterministic executor.
-argument-hint: <file.md> ["List name"] [--yes] [--account <email>]
+argument-hint: <file.md> ["List name"] [--yes] [--account <email>] [--lang ru]
 model: sonnet
 effort: medium
 ---
@@ -20,6 +20,11 @@ model) runs the executor (`npm run dry` / `npm run apply`), which only clicks.
 - **Optional list name** (quoted or the remaining words): overrides the file's title.
 - **Optional `--yes`:** after a dry run, go on to apply without asking again (passed to `listpilot-run`).
 - **Optional `--account <email>`:** the account guard (passed to `listpilot-run`).
+- **Optional `--lang ru`:** the user works in Russian. Without it, use the language the user
+  writes in. In Russian, your messages, questions and `artifacts/plan-summary.md` are in Russian,
+  `npm run resolve` gets `--lang ru` (Russian names and addresses for the summary), and
+  `listpilot-run` gets `--lang ru`. Notes keep the language of the source file in either case:
+  never translate them.
 
 The whole flow runs in this session, including the Chrome steps in `listpilot-run`. Those need a
 session started from a terminal with Full Disk Access.
@@ -44,13 +49,14 @@ session started from a terminal with Full Disk Access.
    top-level title, or ask the user if there is none. Ask for an emoji only if the user
    mentioned one. **At most 40 characters:** Maps cuts longer names, and the executor then
    can't find the list it just created. A longer title gets shortened to its core
-   ("Where to Eat & Drink in Los Angeles (October 2026)" → "LA Eat & Drink (Oct 2026)");
+   ("Where to Eat & Drink in Los Angeles (October 2026)" → "LA Eat & Drink (Oct 2026)";
+   «Куда сходить поесть и выпить в Санкт-Петербурге (октябрь 2026)» → «Еда и бары СПб (окт 2026)»);
    say what you picked. A longer name from the arguments: ask for a shorter one.
 3. **Resolve every place to a `/maps/place/` URL** and put it in `url`. Use `query` only when
    the search will land on one unambiguous place. Anything ambiguous goes in a list for the
    user. Never guess a match. Resolve without Chrome: write one query per line
    (`<name> <area> <city>`) to a file in your scratchpad and run
-   `npm run resolve -- <that file>`. It prints name | address | feature id per query, and
+   `npm run resolve -- <that file>` (add `--lang ru` in Russian). It prints name | address | feature id per query, and
    `artifacts/resolve.json` has the ready `/maps/place/` URL for each candidate. Re-query
    single places with `npm run resolve -- --query "<name> <street> <city>"`.
    - **Chains: add every location.** If a place has several branches and the document doesn't
@@ -70,9 +76,10 @@ session started from a terminal with Full Disk Access.
    and each unresolved place with what was found for it. For a **new** list, also list every
    resolved place as `Maps name — address` (compact, one per line, grouped as in the document).
    That's the preview, since a dry run of a new list adds nothing. For an **update**, add the
-   two limits from "New list vs. update" below.
+   two limits from "New list vs. update" below. In Russian, write the whole summary in Russian
+   («Список: … (новый)», «Мест: 12, из них филиалов сети: 3», «Не найдено: …»).
 6. **Hand off to `listpilot-run`.** Invoke the `listpilot-run` skill with the plan path, plus
-   `--yes` and `--account <email>` if they were given. It runs on a smaller model and does the
+   `--yes`, `--account <email>` and `--lang ru` if they were given. It runs on a smaller model and does the
    rest: the Apply / Dry run question, Chrome checks, the run and the report.
 
 ## New list vs. update
