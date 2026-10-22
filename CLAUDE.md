@@ -64,6 +64,7 @@ npm test                                                                 # pure 
     fails with `EPERM` (TCC).
   - Chrome shows an **Allow** dialog on every new CDP connection, so the first action of each run
     waits for the user to click it.
+- List rows of a place with no reviews have no children: `button "<title> <category>"` straight before its note control (`Tartine Bakery Bakery`). `parseRows` keeps them as `bare` rows, and `titleGroup` puts a bare row in the longest plan title it starts with (it was dropped before, so verify reported the place missing; Oct 2026).
 - **Dedicated profile**: `npm run chrome` starts one on **9333** with normal HTTP discovery. Drop `--cdp auto`. Not 9222: the main Chrome toggle holds 127.0.0.1:9222, and a second Chrome on it binds only `[::1]`, so `127.0.0.1:9222` reaches the main Chrome (404) and the profile looks "not running" (seen Oct 2026). Desktop app Code tab → separate window → sign-in → apply + verify passed (Oct 2026). Closing its last window doesn't quit that Chrome, and a Chrome with no page fails `connectOverCDP` with `Browser.setDownloadBehavior: Browser context management is not supported`: `connect()` opens a tab first (`/json/new`), and never falls back to the main Chrome for an `http://` cdp.
 - **Account guard** (optional): `--account you@gmail.com` or `GMAPS_ACCOUNT` makes `dry`/`apply` stop
   before anything else if the signed-in account (`button "Google Account: <Name> (<email>)"`) doesn't match.
@@ -124,7 +125,7 @@ npm test                                                                 # pure 
 - One tab doing ~70 Maps place loads gets its renderer killed ("Page crashed"), and reloads don't
   free the memory. `run.ts` opens a fresh tab every 25 places, before the list-view pass, and
   right after a crash (the crashed place gets one more try). In the dedicated profile (`connectedToOwnWindow`, HTTP discovery) the first tab is
-  reused and left open on the finished list; in the main Chrome every tab is new and closed at the end.
+  reused and that Chrome is quit at the end (`Browser.close`); in the main Chrome every tab is new and closed at the end.
 - Never write named helper functions inside `page.evaluate`: tsx wraps them in `__name()`, which
   doesn't exist in the page. (The executor no longer uses `evaluate` for rows.)
 - Resolving places without Chrome: Google's `/maps/search/?api=1&query=…` page links a

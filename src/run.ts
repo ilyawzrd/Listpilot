@@ -358,9 +358,14 @@ async function main() {
     await fs.writeFile(values.state!, JSON.stringify(state, null, 2));
     await fs.mkdir(ARTIFACTS, { recursive: true });
     await fs.writeFile(`${ARTIFACTS}/report.json`, JSON.stringify(reports.map((r) => ({ ...r, dryRun, mapsLanguage: hl })), null, 2));
-    // In its own window, leave the tab on the finished list (verify ends there) for the user to see.
-    if (!connectedToOwnWindow) await tab.close().catch(() => {});
-    await browser.close(); // disconnects only; your Chrome keeps running
+    if (connectedToOwnWindow) {
+      // maps-lists' own Chrome: quit it, so no extra window stays behind (the report links the
+      // list; the profile keeps the sign-in, and the next run starts it again).
+      await (await browser.newBrowserCDPSession()).send("Browser.close").catch(() => {});
+    } else {
+      await tab.close().catch(() => {});
+    }
+    await browser.close(); // disconnects only; the user's Chrome keeps running
   }
 
   for (const r of reports) {

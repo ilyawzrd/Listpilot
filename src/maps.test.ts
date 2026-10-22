@@ -161,3 +161,27 @@ test("noteCovered: skips notes the existing one already says, keeps anything new
   // A long note needs the exact text, even if its words appear somewhere.
   assert.equal(noteCovered(tartine, "morning bun line weekday order thing skip longest"), false);
 });
+
+test("parseRows: a place without reviews is a bare row, and joins its title group by prefix", () => {
+  const snap = [
+    '- button "Tartine Manufactory 4.5 stars 4,503 Reviews $20 to $30 Bakery":',
+    "  - text: Tartine Manufactory",
+    '- textbox "Note": get the morning bun',
+    '- button "Tartine Bakery Bakery"',
+    '- button "Add note": Note',
+    '- button "Tartine Bakery 4.5 stars 5,992 Reviews $10 to $20 Bakery":',
+    "  - text: Tartine Bakery",
+    '- textbox "Note": Morning bun is the thing to order',
+    '- button "Share"',
+  ].join("\n");
+  const rows = parseRows(snap, TEXT.en);
+  assert.deepEqual(rows.map((r) => [r.title, r.note, !!r.bare]), [
+    ["Tartine Manufactory", "get the morning bun", false],
+    ["Tartine Bakery Bakery", "", true],
+    ["Tartine Bakery", "Morning bun is the thing to order", false],
+  ]);
+  const plan = ["Tartine Bakery", "Tartine Manufactory", "Tartine"];
+  assert.deepEqual(titleGroup(rows, "Tartine Bakery", (r) => r.title, plan).map((r) => r.title), ["Tartine Bakery Bakery", "Tartine Bakery"]);
+  assert.deepEqual(titleGroup(rows, "Tartine", (r) => r.title, plan).map((r) => r.title), []); // longer title wins
+  assert.deepEqual(titleGroup(rows, "Tartine Manufactory", (r) => r.title, plan).length, 1);
+});

@@ -310,13 +310,19 @@ export const sameTitle = (a: string, b: string) => {
  * so a missing "Ten Belles Bread" row can't borrow the "Ten Belles" one.
  */
 export const titleGroup = <T>(items: T[], title: string, get: (i: T) => string, others: string[] = []): T[] => {
-  const exact = items.filter((i) => norm(get(i)) === norm(title));
+  // A bare row (a place without reviews) is named "<title> <category>", so it joins by prefix.
+  // It goes to the longest plan title it starts with, so "Tartine" doesn't take "Tartine Bakery"'s.
+  const isBare = (i: T) => !!(i as { bare?: boolean }).bare;
+  const longerClaims = (i: T) => others.some((o) => norm(o).length > norm(title).length && sameTitle(get(i), o));
+  const exact = items.filter((i) => norm(get(i)) === norm(title) || (isBare(i) && sameTitle(get(i), title) && !longerClaims(i)));
   if (exact.length) return exact;
   const taken = new Set(others.map(norm).filter((o) => o !== norm(title)));
-  return items.filter((i) => sameTitle(get(i), title) && !taken.has(norm(get(i))));
+  return items.filter((i) => sameTitle(get(i), title) && !taken.has(norm(get(i))) && !(isBare(i) && longerClaims(i)));
 };
 
-export type ListItem = { title: string; note: string };
+/** `bare`: a row without the title/rating children (a place with no reviews yet); `title` is then
+ * its whole accessible name, "<title> <category>", e.g. "Tartine Bakery Bakery". */
+export type ListItem = { title: string; note: string; bare?: boolean };
 /** A row plus its note control: the nth "Add note" button or the nth "Note" textbox in the panel. */
 type Row = ListItem & { ctrl: "add" | "box"; nth: number };
 
@@ -350,23 +356,29 @@ export function parseRows(snapshot: string, t = TEXT[locale()]): Row[] {
   });
   const rows: Row[] = [];
   let title: string | null = null;
+  let bare = false;
   let adds = 0, boxes = 0;
+  const isNoteCtrl = (l = "") => t.rowAddNote.test(l) || t.rowNote.test(l);
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i]!;
     if (t.rowAddNote.test(l)) {
-      if (title !== null) rows.push({ title, note: "", ctrl: "add", nth: adds });
-      adds++; title = null;
+      if (title !== null) rows.push({ title, note: "", ctrl: "add", nth: adds, ...(bare ? { bare } : {}) });
+      adds++; title = null; bare = false;
     } else if (t.rowNote.test(l)) {
       const note = l.replace(t.rowNote, "");
-      if (title !== null) rows.push({ title, note: unyaml(note), ctrl: "box", nth: boxes });
-      boxes++; title = null;
+      if (title !== null) rows.push({ title, note: unyaml(note), ctrl: "box", nth: boxes, ...(bare ? { bare } : {}) });
+      boxes++; title = null; bare = false;
     } else if (/^button ".*":$/.test(l)) {
       const child = lines[i + 1]?.match(/^text: (.*)$/);
       if (child) title = unyaml(child[1]!);
     } else {
       // A closed place's row has no children: button "Pho 19 Permanently closed".
       const closed = l.match(t.rowClosed);
+      const plain = l.match(/^button "(.*)"$/);
       if (closed) title = unyaml(closed[1]!);
+      // A place with no reviews has none either: button "Tartine Bakery Bakery" (title + category),
+      // straight before its note control.
+      else if (plain && isNoteCtrl(lines[i + 1])) { title = unyaml(`"${plain[1]}"`); bare = true; }
     }
   }
   return rows;
@@ -391,7 +403,7 @@ async function readRows(page: Page): Promise<Row[]> {
 }
 
 export async function readList(page: Page): Promise<ListItem[]> {
-  return (await readRows(page)).map(({ title, note }) => ({ title, note }));
+  return (await readRows(page)).map(({ title, note, bare }) => ({ title, note, ...(bare ? { bare } : {}) }));
 }
 
 /**
