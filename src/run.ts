@@ -5,7 +5,7 @@ import { connect, connectedToOwnWindow } from "./connect.js";
 import { PlanSchema, type ListPlan, type Place } from "./plan.js";
 import {
   ARTIFACTS, createListWithPlace, detectLanguage, ensureSignedIn, type LangOption, hardReload, isInList, listExists, norm, openList,
-  openPlace, pause, placeId, readList, retry, sameTitle, saveToList, setListIcon, titleGroup, writeNote, type ListItem,
+  noteCovered, openPlace, pause, placeId, readList, retry, sameTitle, saveToList, setListIcon, titleGroup, writeNote, type ListItem,
 } from "./maps.js";
 
 const { values, positionals } = parseArgs({
@@ -49,6 +49,8 @@ type ListReport = {
   added: string[];
   alreadyPresent: string[];
   notesWritten: string[];
+  /** Places whose existing note already says what the plan's note does (noteCovered); not appended. */
+  notesSkipped: string[];
   unresolved: Issue[];
   failed: Issue[];
   verify: { ok: boolean; missing: string[]; notesMissing: string[]; orderOk: boolean | null; observed: ListItem[] } | null;
@@ -94,7 +96,7 @@ async function tabForNextPlace(): Promise<Page> {
 async function runList(list: ListPlan, state: State): Promise<ListReport> {
   const r: ListReport = {
     list: list.name, created: false, emojiSet: null, added: [], alreadyPresent: [],
-    notesWritten: [], unresolved: [], failed: [], verify: null, warnings: [],
+    notesWritten: [], notesSkipped: [], unresolved: [], failed: [], verify: null, warnings: [],
   };
   return dryRun ? dryRunList(list, state, r) : applyList(list, state, r);
 }
@@ -254,7 +256,11 @@ async function finishList(
   const before = await readList(page);
   const hasNote = (p: Resolved) => {
     const row = titleGroup(before, p.title, (i) => i.title, titles)[nthOfTitle(p)];
-    return !!row && norm(row.note).includes(norm(p.note!));
+    if (!row) return false;
+    if (norm(row.note).includes(norm(p.note!))) return true;
+    if (!noteCovered(row.note, p.note!)) return false;
+    r.notesSkipped.push(p.title);
+    return true;
   };
   // Editing a note moves its row to the top, so a ranked list writes notes from the bottom rank up.
   const toWrite = resolved.filter((x) => x.note && !hasNote(x));
@@ -278,7 +284,7 @@ async function finishList(
   const missing = resolved.filter((p) => !rowFor(p)).map((p) => p.title);
   const notesMissing = resolved
     .filter((p) => p.note && rowFor(p))
-    .filter((p) => !norm(rowFor(p)!.note).includes(norm(p.note!).slice(0, 40)))
+    .filter((p) => !norm(rowFor(p)!.note).includes(norm(p.note!).slice(0, 40)) && !noteCovered(rowFor(p)!.note, p.note!))
     .map((p) => p.title);
   let orderOk: boolean | null = null;
   if (list.ordered && r.created) {
@@ -310,7 +316,7 @@ async function main() {
     for (const list of plan.lists) {
       // A crash in one list must not take the report (or the other lists) down with it.
       reports.push(await runList(list, state).catch((e: Error) => ({
-        list: list.name, created: false, emojiSet: null, added: [], alreadyPresent: [], notesWritten: [],
+        list: list.name, created: false, emojiSet: null, added: [], alreadyPresent: [], notesWritten: [], notesSkipped: [],
         unresolved: [], failed: [{ name: list.name, reason: `crashed: ${e.message}` }], verify: null,
         warnings: ["Crashed mid-run: check the list in Maps before re-running."],
       })));
@@ -318,7 +324,7 @@ async function main() {
   } finally {
     await fs.writeFile(values.state!, JSON.stringify(state, null, 2));
     await fs.mkdir(ARTIFACTS, { recursive: true });
-    await fs.writeFile(`${ARTIFACTS}/report.json`, JSON.stringify(reports.map((r) => ({ ...r, mapsLanguage: hl })), null, 2));
+    await fs.writeFile(`${ARTIFACTS}/report.json`, JSON.stringify(reports.map((r) => ({ ...r, dryRun, mapsLanguage: hl })), null, 2));
     // In its own window, leave the tab on the finished list (verify ends there) for the user to see.
     if (!connectedToOwnWindow) await tab.close().catch(() => {});
     await browser.close(); // disconnects only; your Chrome keeps running

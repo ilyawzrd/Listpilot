@@ -117,7 +117,8 @@ a week if you closed a session midway.
 
 - It never deletes places or lists, and never changes who a list is shared with. If a wrong place
   gets saved, remove it in Maps yourself.
-- If a place already has a note, the new note is added after it, not written over it.
+- If a place already has a note, the new note is added after it, not written over it. A short note
+  that only repeats what's already there is left out, and the report says so.
 - If Claude can't tell for sure which place is meant, it skips it and tells you. It never guesses.
 - List names can be at most 40 characters.
 - Write to Claude in your language (Spanish, Catalan, Russian, Japanese…) and everything you read is

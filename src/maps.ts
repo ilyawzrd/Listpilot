@@ -10,6 +10,29 @@ export const ARTIFACTS = "artifacts";
 export const pause = (min = 700, max = 1600) =>
   new Promise((r) => setTimeout(r, min + Math.random() * (max - min)));
 
+/** Words that don't carry a note's meaning: "get the morning bun" is about "morning" and "bun". */
+const NOTE_FILLER = new Set([
+  "a", "an", "the", "and", "or", "to", "for", "of", "in", "on", "at", "is", "it", "its", "with",
+  "get", "go", "try", "order", "have", "must", "best", "good", "great", "really", "very",
+]);
+
+/**
+ * True when `note` adds nothing to `existing`: contained in it, or, for a short note (≤ 6 meaningful
+ * words), every meaningful word already there ("get the morning bun" vs "Morning bun is the thing
+ * to order…"). Longer notes need the exact text, so new information is never dropped.
+ */
+export function noteCovered(existing: string, note: string): boolean {
+  const e = norm(existing);
+  const n = norm(note);
+  if (!n || e.includes(n)) return true;
+  if (!e) return false;
+  const words = n.split(" ").filter((w) => w.length > 2 && !NOTE_FILLER.has(w));
+  if (!words.length || words.length > 6) return false;
+  const have = e.split(" ");
+  const same = (a: string, b: string) => a === b || (Math.min(a.length, b.length) >= 3 && (a.startsWith(b) || b.startsWith(a)));
+  return words.every((w) => have.some((h) => same(h, w)));
+}
+
 export const norm = (s: string) =>
   s
     .normalize("NFKD")
@@ -398,7 +421,7 @@ export async function writeNote(
     ctrl = noteControl(page, row);
   }
   const existing = (await ctrl.inputValue().catch(async () => (await ctrl.textContent()) ?? "")).trim();
-  if (existing && norm(existing).includes(norm(note))) return "unchanged";
+  if (existing && noteCovered(existing, note)) return "unchanged";
   const next = existing ? `${existing} · ${note}` : note;
   await ctrl.fill(next, { timeout: 5000 });
   // Inline field; Maps saves on blur. Not Tab: that focuses the next row, which selects it, and a

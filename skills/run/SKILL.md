@@ -140,33 +140,13 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
      in the separate window, say to click **Sign in** at the top right of Google Maps there and
      sign into the account the list should go to; in main mode, to sign into Chrome's Google Maps.
      When they say continue, run the same command again.
-4. **Report** from `artifacts/report.json`. It's an array with one entry per list. Write it as
-   Markdown (not inside a code block), one block per list, in this shape, leaving out empty parts:
-
-   > ## ✅ Saved — zz-test · new list
-   >
-   > | Added | Already in list | Notes written | Not found | Failed |
-   > |:-----:|:-----:|:-----:|:-----:|:-----:|
-   > | 10 | 0 | 10 | 1 | 0 |
-   >
-   > **Verify:** ✅ every place and note found after a hard reload
-   > **Not found:** El Granjero (no match on Maps)
-   > 📍 [Open zz-test in Google Maps](<the list's url from .gmaps-state.json>)
-
-   - Heading icon: ✅ everything verified · ⚠️ verify found something
-     missing, or places weren't found · ❌ failed places or the run stopped. Heading text:
-     `Saved` (`Сохранено`), the list name, `new list` / `existing list` (`created`).
-   - Table columns ← report fields: Added ← `added`, Already in list ←
-     `alreadyPresent`, Notes written ← `notesWritten`, Not found ←
-     `unresolved` (closed places count here), Failed ← `failed`.
-   - Then one bold-labelled line each, only when there's something to say: **Verify:** (apply
-     ✅ … or ⚠️ missing `<names>` / notes missing `<names>`), **Not found:** and
-     **Failed:** with `name (reason)` comma-separated (a bullet list when more than 5),
-     **Warnings:**.
-   - 📍 link: the list's `url` in `.gmaps-state.json` in the data folder, when it has one.
-   - In another language, translate the labels (in Russian: Сохранено, новый
-     список / существующий, Добавлено, Уже в списке, Заметок, Не найдено, Ошибки, Проверка,
-     Предупреждения, «Открыть в Google Картах»).
+4. **Report.** Run `maps-lists report` (add `--lang ru` in Russian) **before** cleaning up. It
+   prints the finished Markdown block per list: a heading with ✅ / ⚠️ / ❌, a table of counts,
+   the Verify line, places not found or failed, notes left out because the existing note already
+   said the same, and a 📍 link to the list. Show it **as printed**, as Markdown, not inside a code
+   block, for every save, a direct add included. Never replace it with your own sentences or a raw
+   link. In a language other than English or Russian, translate only the fixed labels; names,
+   numbers and the link stay.
    Place names stay as the report has them; translate the reasons and warnings.
    Exit code 2 means verification found missing places or notes. For a failure, read the
    matching `artifacts/*-fail-*.yaml` to give the reason in a few words. Never paste the yaml:
@@ -176,7 +156,7 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
      plan containing only those places (`plan.retry.json`, same list name; places already saved
      are skipped anyway).
    - **Clean up silently, only after a fully verified save** (`verify.ok` for every list): run
-     `maps-lists clean` after writing the report (read the 📍 link first), and don't mention it.
+     `maps-lists clean` after `maps-lists report`, and don't mention it.
      It removes `zz-*` test lists from `.gmaps-state.json` on purpose; that's not a problem to
      report. Never clean after a dry run or a failed save: a retry needs those files, and the
      weekly cleanup removes them later anyway.

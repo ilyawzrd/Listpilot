@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { localeFromLang, norm, parseRows, placeId, sameName, sameTitle, titleGroup } from "./maps.js";
+import { localeFromLang, norm, noteCovered, parseRows, placeId, sameName, sameTitle, titleGroup } from "./maps.js";
 import { TEXT } from "./selectors.js";
 import { PlanSchema } from "./plan.js";
 
@@ -147,4 +147,17 @@ test("PlanSchema validates places and lists", () => {
   bad([{ name: "L", places: [place] }, { name: "L", places: [place] }]); // duplicate list name
   bad([{ name: "Where to Eat & Drink in Los Angeles (October 2026)", places: [place] }]); // > 40 chars
   PlanSchema.parse({ version: 1, lists: [{ name: "x".repeat(40), places: [place] }] });
+});
+
+test("noteCovered: skips notes the existing one already says, keeps anything new", () => {
+  const tartine = "Morning bun is the thing to order; go mid-morning on a weekday to skip the longest line.";
+  assert.equal(noteCovered(tartine, "get the morning bun"), true); // the real duplicate (Oct 2026)
+  assert.equal(noteCovered(tartine, "Morning buns!"), true); // plural, punctuation
+  assert.equal(noteCovered(tartine, "skip the longest line"), true); // contained
+  assert.equal(noteCovered(tartine, "get the croissant"), false); // new information
+  assert.equal(noteCovered(tartine, "cash only"), false);
+  assert.equal(noteCovered("", "get the morning bun"), false); // no note yet: write it
+  assert.equal(noteCovered("Croissant de mantequilla", "croissant de mantequilla"), true); // any language
+  // A long note needs the exact text, even if its words appear somewhere.
+  assert.equal(noteCovered(tartine, "morning bun line weekday order thing skip longest"), false);
 });

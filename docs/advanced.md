@@ -111,7 +111,10 @@ names can be at most 40 characters (Maps cuts longer ones), so a longer title is
 - There's no dry run in the normal flow: the summary already shows what will be saved, and saving
   only ever adds. Say "dry run" or "just check, don't save" if you want one anyway.
 - Nothing is ever deleted, so a wrong place has to be removed by hand. Existing notes get the new
-  note appended with ` · `, never overwritten.
+  note appended with ` · `, never overwritten. A short new note (up to 6 meaningful words) whose
+  words the existing note already has ("get the morning bun" next to "Morning bun is the thing to
+  order…") is skipped and reported as "Note not added"; longer notes are only skipped when the exact
+  text is already there.
 - Places removed from your file are **not** removed from Maps.
 
 ### Languages
