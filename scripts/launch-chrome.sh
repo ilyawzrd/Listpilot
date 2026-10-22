@@ -13,7 +13,13 @@ PROFILE="${GMAPS_PROFILE:-$HOME/.gmaps-automation-profile}"
 PORT="${CDP_PORT:-9333}"
 
 if curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/json/version"; then
-  echo "The maps-lists Chrome window is already running on port $PORT."
+  # Closing its last window doesn't quit Chrome on macOS: open a window again if none is left.
+  if ! curl -sf --max-time 2 "http://127.0.0.1:$PORT/json/list" | grep -q '"type": *"page"'; then
+    curl -sf -o /dev/null --max-time 5 -X PUT "http://127.0.0.1:$PORT/json/new?https://www.google.com/maps"
+    echo "The maps-lists Chrome window was running with no window open; opened one."
+  else
+    echo "The maps-lists Chrome window is already running on port $PORT."
+  fi
   exit 0
 fi
 

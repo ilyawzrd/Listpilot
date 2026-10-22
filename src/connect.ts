@@ -47,8 +47,8 @@ async function wsFromActivePortFile(): Promise<string> {
 /**
  * --cdp auto            → read the WebSocket endpoint from DevToolsActivePort (chrome://inspect toggle).
  *                         Doesn't touch the HTTP endpoints, which only 404 and can add extra Allow prompts.
- * --cdp http://…:9333   → normal HTTP discovery (dedicated profile launched with --remote-debugging-port);
- *                         falls back to the file if discovery isn't served
+ * --cdp http://…:9333   → normal HTTP discovery (dedicated profile launched with --remote-debugging-port).
+ *                         Never falls back to the main Chrome: that's a different browser and account.
  * --cdp ws://…          → connect directly
  *
  * In main-Chrome mode, Chrome asks you to Allow each connection: click Allow in the browser.
@@ -57,16 +57,27 @@ export async function connect(cdp: string): Promise<Browser> {
   connectedToOwnWindow = false;
   if (cdp === "auto") return chromium.connectOverCDP(await wsFromActivePortFile());
   if (cdp.startsWith("ws")) return chromium.connectOverCDP(cdp);
-  try {
-    const browser = await chromium.connectOverCDP(cdp, { timeout: 10_000 });
-    connectedToOwnWindow = true;
-    return browser;
-  } catch (e) {
-    const ws = await wsFromActivePortFile().catch(() => null);
-    if (!ws) throw e;
-    console.log("HTTP discovery unavailable; connecting via DevToolsActivePort instead.");
-    return chromium.connectOverCDP(ws);
+  await ensureWindow(cdp);
+  const browser = await chromium.connectOverCDP(cdp, { timeout: 10_000 });
+  connectedToOwnWindow = true;
+  return browser;
+}
+
+/**
+ * Closing the dedicated profile's last window doesn't quit Chrome on macOS, and a Chrome with no
+ * page at all fails connectOverCDP ("Browser.setDownloadBehavior: Browser context management is
+ * not supported"). Open a tab first when there's none.
+ */
+async function ensureWindow(cdp: string): Promise<void> {
+  const base = cdp.replace(/\/+$/, "");
+  const list = await fetch(`${base}/json/list`, { signal: AbortSignal.timeout(5000) }).catch(() => null);
+  if (!list?.ok) {
+    throw new Error(`The maps-lists Chrome window isn't running at ${base}. Start it with \`maps-lists chrome\`.`);
   }
+  const targets = (await list.json()) as { type: string }[];
+  if (targets.some((t) => t.type === "page")) return;
+  await fetch(`${base}/json/new?about:blank`, { method: "PUT", signal: AbortSignal.timeout(5000) });
+  await new Promise((r) => setTimeout(r, 1000));
 }
 
 /**
