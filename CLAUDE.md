@@ -139,7 +139,9 @@ npm test                                                                 # pure 
 - **Chains: add every location**, unless the document points to a specific one. Each branch is its
   own plan entry with its own address, and all branches get the same note. The executor handles
   same-name rows: it doesn't skip by name (each place's Save-dialog checkbox decides), pairs the
-  k-th entry with the k-th same-name row for notes and verify, and drops entries that resolve to
+  k-th entry with the k-th same-name row for notes and verify (except a same-name group sharing one
+  note, the normal chain case: every row of the group gets the note, re-reading after each write,
+  since rows carry no address and new or edited rows jump to the top; Oct 2026), and drops entries that resolve to
   the same place id. "Same name" means exact title first (`titleGroup`), falling back to `sameTitle`
   prefix matching, so "Septime" and "Septime La Cave" never share a group.
 - `dry` is for development only; the skills don't offer it (Oct 2026: it duplicated the summary and cost a full Chrome pass). Apply is safe for new and existing lists: it checks each
