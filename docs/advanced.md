@@ -76,10 +76,19 @@ local one. "Hidden gems" without "only" or "also" gets one extra question: mix i
 only lesser-known places. Every candidate ends up either kept or in the filtered-out section with its reason, so
 you can tick any of them back in on the review page.
 
-Sources: local press and guides (in the local language too), Reddit from search snippets (Reddit
-blocks direct fetches), Telegram channels through their public `t.me/s/<channel>` preview. In
+Sources: local press and guides (in the local language too), Reddit, Telegram channels through their public `t.me/s/<channel>` preview. In
 Russian-speaking cities it searches in Russian first and adds Russian food media, Yandex Maps / 2GIS
 review snippets and Telegram as a primary source.
+
+**Reddit threads (optional).** Reddit blocks anonymous reads, so by default the research only sees
+Reddit through search snippets. The first research asks whether to read whole threads instead.
+Yes installs [rdt-cli](https://github.com/public-clis/rdt-cli) (pinned) with
+[uv](https://docs.astral.sh/uv/), which brings its own Python, about 50 MB once, and signs in with
+your Reddit login from your browser: macOS asks once whether `rdt` may use "Chrome Safe Storage".
+You need to be signed in to reddit.com in your browser. Claude reaches it only through
+`maps-lists reddit`, which can search and read and nothing else (rdt itself can also vote and
+comment). No means snippets, and it doesn't ask again (`maps-lists reddit on` brings the
+question back). The login is stored in `~/.config/rdt-cli/`; `rdt logout` removes it.
 
 ### Adding places you name
 
@@ -143,7 +152,7 @@ start Claude in:
 | `plan.json` | the resolved plan the executor runs |
 | `artifacts/` | run report, failure screenshots and ARIA snapshots |
 | `.gmaps-state.json` | every list the executor created or opened, with its Maps link |
-| `config.json` | your Chrome choice (normal or separate window); kept by cleanup |
+| `config.json` | your Chrome choice (normal or separate window) and whether you turned the Reddit reader off; kept by cleanup |
 | `reports/`, `research_notes/` | deep research's own report and notes |
 
 `/maps-lists:lists` reads the places files and the state file. It shows what was saved through
@@ -240,6 +249,9 @@ npm run clean -- --dry-run               # what cleanup would remove; --older-th
 npm run check-plan -- plan.json          # validate a plan
 npm run chrome                           # dedicated Chrome profile on 127.0.0.1:9333 (then leave out --cdp auto)
 bin/maps-lists check-chrome [--set main|separate]   # JSON: mode, ready / debugging-off / no-access / not-running, host app
+bin/maps-lists reddit status|setup|login|off|on     # optional Reddit reader: JSON status, install (uv + rdt-cli), sign in from the browser
+bin/maps-lists reddit search 'bakery lisbon' -r lisbon -t year   # rdt's JSON; read-only flags only
+bin/maps-lists reddit read <post id or URL>… [-n 60]             # post + top comments with scores
 ```
 
 > **zsh:** put Maps URLs in **single quotes**. Inside double quotes, zsh expands the `!` in
@@ -293,5 +305,5 @@ on the next start or `/reload-plugins`. Others run `/plugin marketplace update m
 
 ```bash
 npm run typecheck
-npm test          # list-row parsing, title matching, plan schema, place lookup, review page + server, cleanup, lists
+npm test          # list-row parsing, title matching, plan schema, place lookup, review page + server, cleanup, lists, Reddit wrapper
 ```

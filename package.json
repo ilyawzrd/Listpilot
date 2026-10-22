@@ -1,6 +1,6 @@
 {
   "name": "maps-lists",
-  "version": "0.3.18",
+  "version": "0.3.19",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -16,6 +16,7 @@
     "start": "bash start.sh",
     "review": "tsx src/review.ts",
     "clean": "tsx src/clean.ts",
+    "reddit": "tsx src/reddit.ts",
     "check-plan": "tsx src/plan.ts --check"
   },
   "dependencies": {

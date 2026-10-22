@@ -107,14 +107,14 @@ export async function checkSeparate(port = process.env.CDP_PORT ?? "9333"): Prom
   return res?.ok ? "ready" : "not-running";
 }
 
-/** config.json in the data folder: `chrome` (the mode) and `readyApp` (the desktop app's Claude Code copy that last had access). */
-type Config = { chrome?: string; readyApp?: string; [k: string]: unknown };
+/** config.json in the data folder: `chrome` (the mode), `readyApp` (the desktop app's Claude Code copy that last had access) and `reddit` ("off" once the user declines the Reddit reader; src/reddit.ts). */
+export type Config = { chrome?: string; readyApp?: string; reddit?: string; [k: string]: unknown };
 const CONFIG = "config.json";
 
-const readConfig = async (root: string): Promise<Config> =>
+export const readConfig = async (root: string): Promise<Config> =>
   JSON.parse(await fs.readFile(path.join(root, CONFIG), "utf8").catch(() => "{}"));
 
-async function updateConfig(root: string, patch: Config): Promise<void> {
+export async function updateConfig(root: string, patch: Config): Promise<void> {
   const cfg = await readConfig(root);
   await fs.writeFile(path.join(root, CONFIG), JSON.stringify({ ...cfg, ...patch }, null, 2) + "\n");
 }

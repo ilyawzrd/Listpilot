@@ -84,12 +84,14 @@ Every research pass covers these, per category:
 - **Local press and guides:** city food publications, local food bloggers, Eater /
   The Infatuation / Time Out where they exist, Michelin Bib Gourmand. Local-language sources
   count (search in the local language too).
-- **Reddit, from search snippets:** `site:reddit.com <city> <category>`, local subreddit
-  first (r/lisbon, r/portugal), then r/travel, r/solotravel, r/<country>travel. Vary angles:
-  "locals", "hidden gem", "avoid", "overrated", "tourist trap", "went downhill", this year.
-  Try `WebFetch` on an old.reddit.com thread URL once. Reddit usually blocks it, and if it does,
-  work from the snippets and don't try again. Upvotes, "I live here" and specificity
-  (dish, street, price) raise a comment's weight.
+- **Reddit:** local subreddit first (r/lisbon, r/portugal), then r/travel, r/solotravel,
+  r/<country>travel. Vary angles: "locals", "hidden gem", "avoid", "overrated", "tourist trap",
+  "went downhill", this year. Upvotes, "I live here" and specificity (dish, street, price) raise a
+  comment's weight. Reddit blocks `WebFetch` and anonymous reads, so there are two ways in:
+  - **Threads**, when the Reddit reader is ready (step 0): step 1c reads whole threads, comments
+    and their scores included, with `maps-lists reddit`.
+  - **Search snippets** otherwise: `site:reddit.com <city> <category>`, plus articles that quote
+    threads. Don't `WebFetch` reddit.com.
 - **Telegram channels**, for every city: find local food and city channels with
   `site:t.me <city> <category>` (and the same in the local language), then read recent posts
   through the public web preview `https://t.me/s/<channel>` with `WebFetch` (no login). If a
@@ -124,6 +126,26 @@ Every research pass covers these, per category:
      - **Sonnet:** good results, cheaper and faster.
      - **Haiku** (only when it's current): cheapest and fastest, weakest at judging sources.
 
+   - **Reddit reader.** Run `maps-lists reddit status` with Bash first, without saying anything.
+     It prints one JSON line. If `ready` or `off` is true, ask nothing about Reddit. Otherwise
+     add a question to the same card, header `Reddit`: **Read Reddit threads (Recommended)**:
+     whole threads with their upvotes instead of search snippets, for a better read of what locals
+     say; installs a small Reddit reader once (about 50 MB) and uses your Reddit login from your
+     browser / **Snippets only**: as before; won't ask again. (In Russian: **Читать треды Reddit
+     (рекомендуется)** / **Только сниппеты**, descriptions translated.) Leave out "installs…" when
+     `installed` is already true.
+     - **Read threads:** if `installed` is false, run `maps-lists reddit setup` (`timeout:
+       600000`). Then say in one line: «macOS will ask whether **rdt** may use **Chrome Safe
+       Storage**: type your Mac password and click **Always Allow**» (in Russian: «macOS спросит,
+       можно ли **rdt** использовать **Chrome Safe Storage**: введите пароль от Mac и нажмите
+       **Всегда разрешать**»), and run `maps-lists reddit login` (`timeout: 120000`). Its JSON
+       line has `loggedIn`. If it's false, the browser isn't signed in to Reddit: say in one line
+       that signing in at reddit.com in Chrome and starting the next research again turns threads
+       on, and use snippets this time. A failed `setup` → one line, snippets this time.
+     - **Snippets only:** run `maps-lists reddit off`.
+
+     Do this before anything else in step 0's outcome, so a model switch doesn't lose it.
+
    Never give prices: they depend on the user's plan. If the chosen model is the one you're
    running on, start step 1 straight away. Otherwise you can't switch it yourself: say in one
    line «Type `/model <opus|sonnet>`, then say **continue**» (in Russian: «Введите
@@ -136,8 +158,8 @@ Every research pass covers these, per category:
      gave (e.g. car-free, working from cafés).
    - The angles to cover: everything in "Sources" above, written out in the brief (its agents
      don't see this file): local press and guides (including local-language ones); Reddit (its
-     agents can't load Reddit either, so `site:reddit.com` search snippets and articles that quote
-     threads); Telegram channels via `t.me/s/<channel>`; for a Russian-speaking city, the Russian
+     agents can't load Reddit, so `site:reddit.com` search snippets and articles that quote
+     threads; when the Reddit reader is ready you read the threads yourself in step 1c); Telegram channels via `t.me/s/<channel>`; for a Russian-speaking city, the Russian
      sources; the city's famous names for the category (the institutions every guide lists),
      each with what locals and local press say about it *now*; places that are viral on TikTok or
      Instagram, or tourist traps; closures, moves and ownership changes in the current and
@@ -166,7 +188,30 @@ Every research pass covers these, per category:
    Prefer sources from the current and previous year. Cover everything in "Sources" above, and
    search the city's famous names for the category on purpose ("best <category> <city>", the
    classics every guide lists) with what locals say about them now. With `--more-gems` or
-   `--gems`, add the lesser-known searches from step 1's brief.
+   `--gems`, add the lesser-known searches from step 1's brief. With the Reddit reader ready,
+   leave Reddit to step 1c.
+
+   **1c. Reddit threads (only when the Reddit reader is ready).** After step 1 or 1b, per
+   category, with Bash:
+   - Search 2–4 times, with specific queries (a bare category mostly finds unrelated posts):
+     `maps-lists reddit search 'best <category>' -r <local subreddit> -t all -n 10`, the
+     signature item (`'best pastel de nata'`), the local-language word, one angle like
+     `'<category> overrated'` or `'tourist trap'`, and once without `-r` adding the city.
+     Each line is `{ok, posts: [{id, title, score, comments, date, text, url}]}`. Searches
+     run one at a time (the reader paces itself); keep the whole pass under about 15 searches.
+   - Read the 3–6 threads with the most comments that are about the city and category:
+     `maps-lists reddit read <id> <id>…` (default 30 top comments; `-n 60` for a big thread).
+     One line per thread: `{ok, post, comments: [{score, depth, date, text}], more}`; `depth` 1+
+     is a reply to the comment before it, `more` counts replies not loaded.
+   - Take from them: places named, with each comment's score and whether the writer says they live
+     there; pushback on candidates from step 1 ("overrated", "went downhill", "closed"); and the
+     thread's date. A detailed comment from a resident with real upvotes counts as one strong local
+     source in step 2. A place only Reddit names still needs step 2's evidence bar.
+   - Each thread you rely on goes into `sources` as
+     `{title: "r/<sub>: <thread title>", url: "https://www.reddit.com/r/<sub>/comments/<id>/"}`.
+   - If a command prints `"ok": false` (an expired login, `forbidden`, rate limited), stop
+     the Reddit pass, fall back to snippets (one quick search per category), and say in one line
+     that the Reddit login needs renewing next time. Don't retry.
 2. **Filter.** For each candidate, note who recommends it and any pushback. The test is quality,
    not fame: being famous, busy or in every guide is never on its own a reason to drop a place.
    - **Tourist trap** → drop: its reputation is better than what it serves. On or next to a top
@@ -221,7 +266,7 @@ Every research pass covers these, per category:
      (`trap: …`, `viral: …`, `closed: …`, `thin evidence: …`, or `classic: …` with `--gems`, one
      line). Leave `note` empty.
    - Say once, in a `details` or a `reason`, when Reddit or Telegram evidence comes only from
-     search snippets.
+     search snippets (for Reddit: whenever step 1c didn't run).
 
    Validate with `maps-lists review --check <json>` and fix any reported field.
 4. **Review.** Tell the user what the research found, as Markdown in the conversation language:
@@ -259,7 +304,10 @@ Every research pass covers these, per category:
 - Keep internals out of replies: no commands, file names, backups, validation results or exit
   codes. The user sees the summaries, the questions and anything they need to act on.
 - Never invent a place. Every entry in the JSON has a source. After deep research, take places
-  only from its report, never from memory.
+  only from its report or from the threads step 1c read, never from memory.
+- Reddit goes through `maps-lists reddit` only: never run `rdt` yourself (it can vote, comment and
+  subscribe; the wrapper can't), and never read or print `~/.config/rdt-cli/`, which holds the
+  user's Reddit login.
 - Don't write the `.places.md` yourself; the review page writes it from the user's choices.
 - Don't resolve places or touch Chrome here. That's `maps-lists:import` and `maps-lists:run`.
 - All of `maps-lists:import`'s rules still apply (never delete, never guess a match, 40-char list names).

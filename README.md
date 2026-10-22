@@ -129,6 +129,10 @@ a week if you closed a session midway.
 - Run it from the Terminal app or the Claude desktop app's Code tab, not from inside an editor like
   VS Code. Editors can't reach Chrome's settings.
 
+- The first research asks whether to read Reddit threads. Yes installs a small Reddit reader and
+  uses the Reddit login in your browser (macOS asks once to allow "Chrome Safe Storage"); no keeps
+  to Reddit search results, as before. Either way it only reads Reddit, never posts or votes.
+
 ## If something goes wrong
 
 - **"Connection rejected"**: the Allow prompt in Chrome wasn't clicked. Bring Chrome to the front,

@@ -3,7 +3,7 @@
 # research/, artifacts/, plan.json and .gmaps-state.json always land in one place, wherever Claude
 # was started.
 #
-#   maps-lists dry|apply|resolve|review|clean|probe|lists|report|check-plan|check-chrome|chrome [args…]
+#   maps-lists dry|apply|resolve|review|clean|probe|lists|report|check-plan|check-chrome|chrome|reddit [args…]
 #   MAPS_LISTS_HOME=/some/dir maps-lists …   # default ~/.maps-lists
 set -euo pipefail
 ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
@@ -19,6 +19,14 @@ command -v node >/dev/null || no_node "Node.js isn't installed."
 if [[ ! -x "$ROOT/node_modules/.bin/tsx" ]]; then
   echo "Installing dependencies (first run)…" >&2
   npm ci --omit=dev --silent --prefix "$ROOT" >&2 || { echo "npm ci failed in $ROOT" >&2; exit 1; }
+fi
+
+# Reddit queries are free text, not paths: they skip the path rewriting below.
+if [[ ${1:-} == reddit ]]; then
+  shift
+  mkdir -p "$HOME_DIR"
+  cd "$HOME_DIR"
+  exec "$ROOT/node_modules/.bin/tsx" "$ROOT/src/reddit.ts" "$@"
 fi
 
 # A relative path means the data folder first (plan.json, research/…, artifacts/…), so a stray
@@ -48,5 +56,5 @@ case "$cmd" in
   check-plan) exec "$tsx" "$ROOT/src/plan.ts" --check "${1:-plan.json}" ;;
   chrome)     exec bash "$ROOT/scripts/launch-chrome.sh" ;;
   home)       echo "$HOME_DIR" ;;
-  *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|lists|report|check-plan|check-chrome|chrome|home [args…]" >&2; exit 64 ;;
+  *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|lists|report|check-plan|check-chrome|chrome|reddit|home [args…]" >&2; exit 64 ;;
 esac
