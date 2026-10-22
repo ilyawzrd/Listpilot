@@ -1,12 +1,12 @@
 ---
 name: import
-description: Use when the user wants places from a .md file (a research report, a chat answer, a list of recommendations, or a maps-lists:research places file) added to a Google Maps saved list, or an existing list updated, with notes. Opens the review page (checkboxes, editable notes) for a file that wasn't reviewed yet, builds plan.json, then hands it to maps-lists:run to apply with the plugin's deterministic executor.
-argument-hint: <file.md> ["List name"] [--yes] [--account <email>] [--lang ru]
+description: Use when the user wants places from a file (.md, .txt, PDF, Word, a saved web page or email, a screenshot), from text pasted into the chat, or from a maps-lists:research places file added to a Google Maps saved list, or an existing list updated, with notes. Opens the review page (checkboxes, editable notes) for a file that wasn't reviewed yet, builds plan.json, then hands it to maps-lists:run to apply with the plugin's deterministic executor.
+argument-hint: <file or pasted text> ["List name"] [--yes] [--account <email>] [--lang <tag>]
 model: sonnet
 effort: medium
 ---
 
-# Markdown → Google Maps list
+# A document → Google Maps list
 
 You do the judgment work: parse, let the user review the places on the review page, resolve,
 build `plan.json`. Then `maps-lists:run` (on a smaller
@@ -22,19 +22,30 @@ Write one of those files with your own tools, use the full path (`~/.maps-lists/
 Pass data files by these relative names. Pass anything else (the user's `.md`, a queries file in
 your scratchpad) as an absolute path.
 
+If a `maps-lists` command fails with `NODE_MISSING`, Node.js 18+ is missing or too old. If the
+message mentions Homebrew, ask with `AskUserQuestion` (header `Node.js`): **Install it now** (run
+`brew install node` with Bash, `timeout: 600000`, then retry the command) / **I'll install it
+myself** (link https://nodejs.org and stop). Without Homebrew, give the link and stop.
+
 ## Input
 
 `$ARGUMENTS`, e.g. `~/Downloads/la.md "LA Eats" --yes`:
 
-- **First token:** path to a `.md` file with places (headings, bullets or free text). See
-  `${CLAUDE_PLUGIN_ROOT}/examples/places.example.md`. If it's missing, ask for it.
+- **The source**, one of:
+  - a path to a file with places (headings, bullets or free text; see
+    `${CLAUDE_PLUGIN_ROOT}/examples/places.example.md`). Dragging a file into the terminal pastes
+    its path, often quoted or with `\ ` before spaces: strip those, expand `~`, make it absolute;
+  - places pasted straight into the conversation (in `$ARGUMENTS` or the user's message);
+  - neither: ask for it, in one line ("drag the file in here, or paste the list").
 - **Optional list name** (quoted or the remaining words): overrides the file's title.
 - **Optional `--yes`:** after a dry run, go on to apply without asking again (passed to `maps-lists:run`).
 - **Optional `--account <email>`:** the account guard (passed to `maps-lists:run`).
-- **Optional `--lang ru`:** the user works in Russian. Without it, use the language the user
-  writes in. In Russian, your messages, questions and `artifacts/plan-summary.md` are in Russian,
-  `maps-lists resolve` gets `--lang ru` (Russian names and addresses for the summary), and
-  `maps-lists:run` gets `--lang ru`. Notes keep the language of the source file in either case:
+- **Optional `--lang <tag>`:** the conversation language. Without it, use the language the user
+  writes in, whatever it is. Your messages, questions and `artifacts/plan-summary.md` are in it,
+  `maps-lists resolve` gets `--lang <tag>` (names and addresses in that language for the summary),
+  and `maps-lists:run` gets `--lang <tag>`, for anything but English. Strings below are given in
+  English, some with a Russian version as a worked example; translate them for other languages.
+  Notes keep the language of the source file in any case:
   never translate them.
 
 The whole flow runs in this session, including the Chrome steps in `maps-lists:run`. Those need a
@@ -42,6 +53,22 @@ session started from a terminal with Full Disk Access.
 
 ## Flow
 
+0. **Get the source as Markdown.** Step 1 and the review page work from one `.md` file.
+   - **`.md`:** use it as is.
+   - **`.txt`, `.html`/`.htm`, `.eml`, PDF, image** (a screenshot of a list or a menu): read it
+     with the Read tool (PDF: `pages` in chunks of 20).
+   - **`.docx`, `.doc`, `.rtf`, `.odt`, `.pages`-exported text:** convert with macOS's built-in
+     `textutil -convert txt -stdout "<file>"` and read the output.
+   - **Pasted text:** the text the user pasted.
+   - Anything you can't read (a spreadsheet, an encrypted PDF, an unsupported format): say what
+     you can read and ask for a copy-paste instead. Never guess at contents.
+
+   For everything except an `.md` file, write what you read to
+   `research/<slug>-<YYYYMMDD>.source.md` in the data folder, keeping the original wording and
+   order (headings, bullets, the text around each place; drop page furniture like headers,
+   footers and ads). The slug comes from the file's basename, or for pasted text from the list
+   name or the city (ASCII). From here on, that file is "the file". Don't tell the user about this
+   step beyond one line ("Read 23 places from lisbon.pdf").
 1. **Parse the file** into places. Text attached to a place (the rest of its bullet or
    paragraph) becomes its `note`, trimmed to one or two short sentences. Order doesn't matter:
    leave `ordered` out (it defaults to false) unless the user asks for a ranked list.
@@ -66,9 +93,13 @@ session started from a terminal with Full Disk Access.
 3. **Review page.** Skip this step for a `*.places.md`: it comes from `maps-lists:research` and was
    already reviewed on this page. Every other file goes through it.
    - Write `research/<slug>-<YYYYMMDD>.json`, with the slug from the file's basename (ASCII only,
-     e.g. `research/la-eats-20261019.json`). The schema is `ResearchSchema` in `${CLAUDE_PLUGIN_ROOT}/src/review.ts`
+     e.g. `research/la-eats-20261019.json`; for a `.source.md`, drop `.source`). The schema is `ResearchSchema` in `${CLAUDE_PLUGIN_ROOT}/src/review.ts`
      (sample: `${CLAUDE_PLUGIN_ROOT}/examples/research.example.json`), filled from step 1:
-     - `lang`: `"ru"` with `--lang ru`, otherwise leave it out. It sets the page's language.
+     - `lang`: the conversation language's tag; leave it out for English. It sets the page's
+       language. For any language but English and Russian, also add `ui` with the page's labels
+       translated, as described for the research file in `maps-lists:research` (the `en` table in
+       `${CLAUDE_PLUGIN_ROOT}/src/review.ts` has the English wording; `go` per plural category with
+       `{n}`).
      - `list`: the name from step 2.
      - `places[]`, in the file's order: `section` (the file's heading for it, or `""`), `name`,
        `area` (the street or neighbourhood the file gives, `all branches` for a chain the file
@@ -93,7 +124,7 @@ session started from a terminal with Full Disk Access.
    the search will land on one unambiguous place. Anything ambiguous goes in a list for the
    user. Never guess a match. Resolve without Chrome: write one query per line
    (`<name> <area> <city>`) to a file in your scratchpad and run
-   `maps-lists resolve <that file>` (add `--lang ru` in Russian). It prints name | address | feature id per query, and
+   `maps-lists resolve <that file>` (add `--lang <tag>` for anything but English). It prints name | address | feature id per query, and
    `artifacts/resolve.json` has the ready `/maps/place/` URL for each candidate. Re-query
    single places with `maps-lists resolve --query "<name> <street> <city>"`.
    - **Chains: add every location.** If a place has several branches and the document doesn't
@@ -113,10 +144,10 @@ session started from a terminal with Full Disk Access.
    and each unresolved place with what was found for it. For a **new** list, also list every
    resolved place as `Maps name — address` (compact, one per line, grouped as in the document).
    That's the preview, since a dry run of a new list adds nothing. For an **update**, add the
-   two limits from "New list vs. update" below. In Russian, write the whole summary in Russian
-   («Список: … (новый)», «Мест: 12, из них филиалов сети: 3», «Не найдено: …»).
+   two limits from "New list vs. update" below. Write the whole summary in the conversation
+   language (in Russian, e.g. «Список: … (новый)», «Мест: 12, из них филиалов сети: 3», «Не найдено: …»).
 7. **Hand off to `maps-lists:run`.** Invoke the `maps-lists:run` skill with the plan path, plus
-   `--yes`, `--account <email>` and `--lang ru` if they were given. It runs on a smaller model and does the
+   `--yes`, `--account <email>` and `--lang <tag>` if they were given. It runs on a smaller model and does the
    rest: the Apply / Dry run question, Chrome checks, the run and the report.
 
 ## New list vs. update
@@ -126,7 +157,7 @@ checkbox decides whether it's already in the list (so chain branches are checked
 new places are added, and new notes are appended (` · `, never overwritten). The summary
 states two limits:
 
-- Places removed from the `.md` are **not** removed from Maps.
+- Places removed from the source are **not** removed from Maps.
 - With `ordered: true`, ranking is exact only for a list the executor creates. In an existing
   list, new places are ranked among themselves and existing ones keep their position.
 

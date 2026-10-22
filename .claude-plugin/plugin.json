@@ -1,9 +1,17 @@
 {
   "name": "maps-lists",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Builds Google Maps saved lists, with notes, from city research or a .md file of places. Unofficial; drives your own Chrome.",
-  "author": { "name": "Ilia" },
+  "author": {
+    "name": "Ilia"
+  },
   "repository": "https://github.com/ilyawzrd/maps-lists",
   "license": "MIT",
-  "keywords": ["google-maps", "saved-lists", "travel", "restaurants", "research"]
+  "keywords": [
+    "google-maps",
+    "saved-lists",
+    "travel",
+    "restaurants",
+    "research"
+  ]
 }

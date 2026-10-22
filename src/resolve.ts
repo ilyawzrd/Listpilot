@@ -9,11 +9,12 @@ import { ARTIFACTS } from "./maps.js";
  *
  *   npm run resolve -- queries.txt            # one query per line
  *   npm run resolve -- --query "Langer's Deli Los Angeles"
- *   npm run resolve -- queries.txt --lang ru  # names and addresses in Russian
+ *   npm run resolve -- queries.txt --lang ca  # names and addresses in Catalan (any language tag)
  */
 
 export type Candidate = { name: string; address: string; id: string; url: string };
-export type Lang = "en" | "ru";
+/** Any language Google Maps knows (en, ru, es, ca, pt-BR…): names and addresses come back in it. */
+export type Lang = string;
 
 const headers = (lang: Lang) => ({
   "user-agent":
@@ -64,8 +65,8 @@ async function main() {
     options: { query: { type: "string", multiple: true }, lang: { type: "string", default: "en" } },
   });
   const lang = values.lang as Lang;
-  if (lang !== "en" && lang !== "ru") {
-    console.error(`--lang must be en or ru, got "${values.lang}"`);
+  if (!/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang)) {
+    console.error(`--lang takes a language tag like en, es, ca or pt-BR, got "${values.lang}"`);
     process.exit(1);
   }
   const queries = [...(values.query ?? [])];

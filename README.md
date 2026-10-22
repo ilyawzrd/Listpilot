@@ -9,49 +9,86 @@ saves them to a Google Maps list in your own Chrome, with a short note for each 
 
 - A Mac with [Google Chrome](https://www.google.com/chrome/)
 - [Claude Code](https://claude.com/claude-code), signed in
-- [Node.js](https://nodejs.org/) version 18 or newer
+- [Node.js](https://nodejs.org/) version 18 or newer. If it's missing, Claude offers to install it
+  (with Homebrew) the first time.
 
-## One-time setup
+## Install
 
-1. **Install the plugin.** Open the Terminal app, run `claude`, and type these two commands:
-   ```
-   /plugin marketplace add ilyawzrd/maps-lists
-   /plugin install maps-lists@maps-lists
-   ```
-   Then turn on updates: type `/plugin`, open **Marketplaces** → **maps-lists** → **Enable auto-update**.
-   New versions then install by themselves (they take effect the next time you start Claude).
-2. **Let your terminal read Chrome's settings.** Open System Settings → Privacy & Security →
-   Full Disk Access, and switch on the terminal app you use (for example Terminal or iTerm).
-3. **Let Claude use Chrome.** In Chrome, open `chrome://inspect/#remote-debugging` and switch it on.
-   You can switch it off again when you're done.
+Open the Terminal app, run `claude`, and type:
+
+```
+/plugin marketplace add ilyawzrd/maps-lists
+/plugin install maps-lists@maps-lists
+```
+
+Then turn on updates: type `/plugin`, open **Marketplaces** → **maps-lists** → **Enable auto-update**.
+New versions then install by themselves and take effect the next time you start Claude.
+
+That's all. Chrome needs two switches before Claude can save to Maps, and Claude walks you through
+both the first time:
+
+- **Chrome's remote debugging:** Claude opens `chrome://inspect/#remote-debugging`; you switch it on.
+  You can switch it off again when you're done.
+- **Full Disk Access for your terminal app**, so Claude can find Chrome's connection details. Claude
+  opens the right page in System Settings; you switch your terminal on, and macOS restarts it. Then
+  start `claude` again and type `/maps-lists:run` to pick up where you left off.
 
 ## Make a list
 
-Start `claude` in the Terminal app and just ask, in English or Russian:
+Start `claude` in the Terminal app and just ask, in any language:
 
 ```
 Find natural wine bars with food in Gràcia, Barcelona, open late, and put them on a list "BCN Wine"
 ```
 
 Or type `/maps-lists:start` and Claude asks what you want: research places for you, or use a file
-you already have. It then asks a few short questions (what, where, the list name, deep or quick).
+you already have.
 
-Claude researches local guides, press, Telegram channels and Reddit, and skips tourist traps, viral spots
-and closed places.
+Before researching, Claude asks two things, with what each choice costs:
+
+- **Deep or quick:** deep sends several research agents out at once (5–10 minutes, more places);
+  quick is one pass (1–2 minutes, fewer places, much cheaper).
+- **Which model:** keep the one you're on, or switch. Opus is the best at judging sources but uses
+  your limits faster; Sonnet is cheaper and faster. To switch, Claude tells you to type
+  `/model opus` (or `sonnet`) and say "continue".
+
+Claude researches local guides, press, Telegram channels and Reddit. Famous places that locals still
+rate stay in, marked as classics; tourist traps, viral spots and closed places are filtered out. Say
+"include hidden gems" for more lesser-known places alongside a few classics, or "hidden gems only"
+to leave the classics out.
+
 When it's done, a **review page** opens in your browser:
 
 - Tick the places you want and edit their notes. The note is what shows up in Maps.
 - Click a place to see why it was picked, what to order and where it was mentioned.
-- Places that were filtered out are at the bottom, in case you want some of them back.
+- Places that were filtered out are at the bottom, with the reason, in case you want some back.
 
 Press **Continue**. Claude looks every place up on Google Maps and asks whether to **Apply** (save them
 to your list) or do a **Dry run** (just show what would change). Chrome then asks you to **Allow** the
 connection. Click it, and Claude saves the places and checks that everything arrived.
 
-**Already have a list of places?** If it's in a text file (`.md`), say so ("add the places in
-~/Downloads/lisbon.md to a Maps list"), or pick the file option in `/maps-lists:start`. You can drag
-the file into the terminal window. The same review page opens with the places
-from your file, so you can untick some and edit notes before anything goes to Maps.
+**Already have a list of places?** Type your request and drag the file into the terminal window
+(dropping a file there pastes its location), for example:
+
+```
+Add the places in /Users/you/Downloads/lisbon.pdf to my list "Lisbon Eats"
+```
+
+It can be a text or Markdown file, a PDF, a Word document, a saved web page or email, or a
+screenshot. You can also paste the list straight into the chat. The same review page opens with the
+places it found, so you can untick some and edit notes before anything goes to Maps. Your notes stay
+in the language they're written in; ask if you want them translated. An existing list name adds to
+that list; nothing already in it is removed.
+
+## Your lists and files
+
+Ask "what lists have I made?" or "show me my San Francisco list" (or type `/maps-lists:lists`). Claude
+shows each list with a link to open it in Google Maps, and the places and notes you saved.
+
+Everything is kept in one folder, `~/.maps-lists` (ask Claude to "open the folder", or press
+Cmd-Shift-G in Finder). Each list's places stay in `research/` there as a `*.places.md` file, so you
+can share it or run it again later. Other leftover files are removed after a successful save, or after
+a week if you closed a session midway.
 
 ## Good to know
 
@@ -60,12 +97,11 @@ from your file, so you can untick some and edit notes before anything goes to Ma
 - If a place already has a note, the new note is added after it, not written over it.
 - If Claude can't tell for sure which place is meant, it skips it and tells you. It never guesses.
 - List names can be at most 40 characters.
-- Everything it writes stays in one folder, `~/.maps-lists` (open it in Finder with Cmd-Shift-G).
-  Each list's final places file stays in `research/` there (`*.places.md`), so you can run it again later.
-  Other leftover files are removed after a successful save, or after a week if you closed a session midway.
-- Write to Claude in Russian and everything is in Russian: the questions, the review page,
-  Claude's messages and the notes. No language setting needed.
-- Google Maps in English, Spanish or Russian all work. The language is picked up from your Google account.
+- Write to Claude in your language (Spanish, Catalan, Russian, Japanese…) and everything you read is
+  in it: the questions, the review page, Claude's messages and the notes. No language setting needed.
+- Your Google Maps can be in any language. Saving works best when your Google account is set to English,
+  Spanish or Russian; with any other, Claude opens Maps in English for its own visit, and your list
+  still shows up in your language.
 - Run it from the Terminal app, not from inside an editor like VS Code. Editors can't reach Chrome's settings.
 
 ## If something goes wrong
@@ -74,14 +110,14 @@ from your file, so you can untick some and edit notes before anything goes to Ma
   run it again and click **Allow**.
 - **Claude asks permission for every `maps-lists` command**: choose "Yes, and don't ask again"
   for it once.
-- **"EPERM"**: your terminal doesn't have Full Disk Access yet (setup step 2). Restart the terminal
-  after switching it on.
+- **"EPERM" or "Operation not permitted"**: your terminal doesn't have Full Disk Access yet. Claude
+  offers to open the setting; after switching it on, quit and reopen the terminal.
 - **Chrome isn't connected**: Claude opens `chrome://inspect/#remote-debugging` for you. Switch it on
   and tell Claude to continue.
 
 ## More details
 
-Using it from a downloaded copy of this project (`./start.sh`), running steps by hand, a separate Chrome profile, multiple Google accounts, flags and development:
+Options you can add, a separate Chrome profile, several Google accounts, and working on the code:
 see [docs/advanced.md](docs/advanced.md).
 
 ## License

@@ -1,7 +1,7 @@
 ---
 name: run
 description: Use when a validated plan.json is ready (usually handed over by maps-lists:import) and the user wants it dry-run or applied to Google Maps through their Chrome, or wants the last run's report. Runs the executor and reports; makes no judgment calls.
-argument-hint: [plan.json] [--yes] [--account <email>] [--report] [--lang ru]
+argument-hint: [plan.json] [--yes] [--account <email>] [--report] [--lang <tag>]
 model: haiku
 effort: medium
 ---
@@ -22,6 +22,11 @@ Write one of those files with your own tools, use the full path (`~/.maps-lists/
 Pass data files by these relative names. Pass anything else (the user's `.md`, a queries file in
 your scratchpad) as an absolute path.
 
+If a `maps-lists` command fails with `NODE_MISSING`, Node.js 18+ is missing or too old. If the
+message mentions Homebrew, ask with `AskUserQuestion` (header `Node.js`): **Install it now** (run
+`brew install node` with Bash, `timeout: 600000`, then retry the command) / **I'll install it
+myself** (link https://nodejs.org and stop). Without Homebrew, give the link and stop.
+
 ## Input
 
 `$ARGUMENTS`:
@@ -29,8 +34,9 @@ your scratchpad) as an absolute path.
 - **Plan path:** defaults to `plan.json` in the data folder.
 - **`--yes`:** after a dry run, apply without asking again.
 - **`--account <email>`:** add it to every `maps-lists dry` / `maps-lists apply` command.
-- **`--lang ru`:** talk to the user in Russian and use the Russian strings given below for every
-  question and the report. Without it, use the language the user writes in. **Never pass this
+- **`--lang <tag>`:** the conversation language. Talk to the user in it and use it for every
+  question and the report; Russian strings are given below, translate the English ones for any other
+  language. Without it, use the language the user writes in. **Never pass this
   `--lang` to `maps-lists dry` / `maps-lists apply`:** their own `--lang` is the Maps UI language and
   stays at its default (`auto`).
 - **`--report`:** skip to step 4. Read the last `artifacts/report.json` and report it (e.g. after
@@ -61,7 +67,24 @@ your scratchpad) as an absolute path.
      wait for the user to turn the toggle on and say continue, then check once more) /
      **It's already on** (go on) / **Cancel** (stop). In Russian: header `Chrome`;
      **Открыть настройки** / **Уже включено** / **Отмена**.
-   - **`Operation not permitted`:** no Full Disk Access. Go on; step 3 handles it.
+   - **`Operation not permitted`:** the app Claude runs in has no Full Disk Access, which
+     `--cdp auto` needs to read that file. macOS has no permission prompt for it, so walk the user
+     through it. Find the app with `echo "$TERM_PROGRAM"` (`Apple_Terminal` → Terminal,
+     `iTerm.app` → iTerm, `ghostty` → Ghostty, `WarpTerminal` → Warp, `vscode` → VS Code: tell
+     them to use the Terminal app instead, since editors can't get it). Ask with `AskUserQuestion`
+     (header `Access`, in Russian `Доступ`):
+     - **Open System Settings** (`Открыть настройки`): run
+       `open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"`, then
+       say: switch on <app> in the list (+ to add it if it's missing); macOS then offers
+       **Quit & Reopen**. After reopening, start `claude` and type `/maps-lists:run`: the plan is
+       saved and it picks up here (in Russian: «включите <app> в списке (если его нет, добавьте
+       через +); macOS предложит **Quit & Reopen**. Затем запустите `claude` и введите
+       `/maps-lists:run`: план сохранён, продолжим отсюда»). Stop.
+     - **Use a separate Chrome window** (`Отдельное окно Chrome`): no Full Disk Access needed, but
+       the user signs into Google there once. Run `maps-lists chrome` with Bash
+       (`run_in_background: true`), ask them to sign in and say continue, then go to step 3
+       without `--cdp auto`.
+     - **Cancel** (`Отмена`): stop; the plan stays for `/maps-lists:run`.
 3. **Run.** Tell the user to click **Allow** in Chrome when it asks (in Russian: «Когда Chrome
    спросит, нажмите **Allow** (Разрешить)»; the button may be in Chrome's own language). Then run with Bash,
    with `timeout: 600000`:
@@ -70,8 +93,8 @@ your scratchpad) as an absolute path.
 
    Use the plan path given in place of `plan.json`, and add `--account <email>` if it was given.
    Expect about 5–10 s per place.
-   - **`EPERM` on `DevToolsActivePort`:** this terminal (or VS Code) has no Full Disk Access.
-     Say so and give the user the exact command to run in a terminal that has it, with the full
+   - **`EPERM` on `DevToolsActivePort`:** no Full Disk Access after all. Offer step 2's
+     `Operation not permitted` options, or give the user the exact command to run in a terminal that has it, with the full
      path, since `maps-lists` is only on PATH inside Claude: `"${CLAUDE_PLUGIN_ROOT}/bin/maps-lists" apply plan.json --cdp auto`. Tell them that
      once it's done, `/maps-lists:run --report` reads the result. Stop.
 4. **Report** from `artifacts/report.json`. It's an array with one entry per list. Use this
@@ -86,7 +109,7 @@ your scratchpad) as an absolute path.
    Verify: ok | missing <names> | notes missing <names>   ← verify (apply only)
    Warnings: <warnings>
    ```
-   In Russian, the same template with these labels:
+   In another language, the same template with translated labels; in Russian:
    ```
    <Пробный прогон | Применение> — <list>  (создан: да/нет)
    Добавлено: N                 (пробный прогон: будет добавлено N)

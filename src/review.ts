@@ -34,10 +34,24 @@ const ItemSchema = z.object({
   sources: z.array(SourceSchema).default([]),
   keep: z.boolean().optional(),
 });
+/** The page's labels for a language without a built-in table; missing ones fall back to English. */
+const UiSchema = z
+  .object({
+    hint: z.string(), filtered: z.string(), details: z.string(), hide: z.string(), placeholder: z.string(),
+    keep: z.string(), noteFor: z.string(), cancel: z.string(), allBranches: z.string(), nothing: z.string(),
+    reconnecting: z.string(), sending: z.string(), sent: z.string(), cancelled: z.string(), close: z.string(),
+    /** The Continue button per plural category of `lang` (Intl.PluralRules: one, few, many, other…), with {n}. */
+    go: z.record(z.enum(["zero", "one", "two", "few", "many", "other"]), z.string().includes("{n}")),
+  })
+  .partial()
+  .strict();
+
 export const ResearchSchema = z.object({
   version: z.literal(1),
-  /** Language of the review page (and of the notes the research wrote). */
-  lang: z.enum(["en", "ru"]).default("en"),
+  /** Language of the review page and of the notes the research wrote: any BCP 47 tag (en, ru, es, ca, pt-BR). */
+  lang: z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, "a language tag like en, es, ca or pt-BR").default("en"),
+  /** Labels for a `lang` other than en/ru, translated by Claude. */
+  ui: UiSchema.optional(),
   list: z.string().min(1).max(MAX_LIST_NAME, `Maps cuts list names at ${MAX_LIST_NAME} characters; shorten it`),
   places: z.array(ItemSchema).min(1),
   /** Filtered out by the research (trap, viral, closed, thin evidence); shown unticked. */
@@ -102,7 +116,7 @@ export function summarize(before: Research, after: Research): string {
 // ── page ─────────────────────────────────────────────────────────────────────
 
 /** "1 place" / "3 места" / "5 мест": English has two forms, Russian three. */
-export function plural(lang: Research["lang"], n: number): string {
+export function plural(lang: "en" | "ru", n: number): string {
   if (lang === "en") return `${n} ${n === 1 ? "place" : "places"}`;
   const a = n % 10, b = n % 100;
   return `${n} ${a === 1 && b !== 11 ? "место" : a >= 2 && a <= 4 && (b < 12 || b > 14) ? "места" : "мест"}`;
@@ -120,6 +134,7 @@ const UI = {
     cancel: "Cancel",
     allBranches: "all branches",
     go: (n: number) => (n ? `Continue with ${plural("en", n)} →` : "Nothing selected"),
+    nothing: "Nothing selected",
     reconnecting: "Reconnecting to Claude… your changes are kept.",
     sending: "Sending…",
     sent: "Sent to Claude",
@@ -137,6 +152,7 @@ const UI = {
     cancel: "Отмена",
     allBranches: "все филиалы",
     go: (n: number) => (n ? `Продолжить: ${plural("ru", n)} →` : "Ничего не выбрано"),
+    nothing: "Ничего не выбрано",
     reconnecting: "Переподключаюсь к Claude… изменения сохранены.",
     sending: "Отправляю…",
     sent: "Отправлено в Claude",
@@ -145,6 +161,26 @@ const UI = {
   },
 };
 type Strings = (typeof UI)["en"];
+
+/** Built-in table for en/ru; for any other lang, Claude's `ui` over English (go per plural category). */
+export function strings(r: Pick<Research, "lang" | "ui">): Strings {
+  const base = r.lang.split("-")[0];
+  if (base === "en" || base === "ru") return UI[base];
+  const { go, ...labels } = r.ui ?? {};
+  const t: Strings = { ...UI.en, ...labels };
+  if (!go) return t;
+  const rules = new Intl.PluralRules(r.lang);
+  const nothing = t.nothing;
+  t.go = (n) => {
+    if (!n) return nothing;
+    const form = go[rules.select(n)] ?? go.other;
+    return form ? form.replace("{n}", String(n)) : UI.en.go(n);
+  };
+  return t;
+}
+
+/** The page's lang attribute: English when a language without a built-in table brought no labels. */
+const pageLang = (r: Research) => (["en", "ru"].includes(r.lang.split("-")[0]!) || r.ui ? r.lang : "en");
 
 export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -302,14 +338,14 @@ export function renderPage(r: Research): string {
   const all = entries(r);
   const places = all.filter((e) => e.id.startsWith("p"));
   const filtered = all.filter((e) => e.id.startsWith("x"));
-  const t = UI[r.lang];
+  const t = strings(r);
   // Client-side strings; "go" is precomputed for every count, so the page needs no plural rules.
   const L = {
     go: Array.from({ length: all.length + 1 }, (_, n) => t.go(n)),
     reconnecting: t.reconnecting, sending: t.sending, sent: t.sent, cancelled: t.cancelled, close: t.close,
   };
   return `<!doctype html>
-<html lang="${r.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="${pageLang(r)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(r.list)}</title><style>${CSS}
 .chev::before { content:${JSON.stringify(t.details)}; }
 .name[aria-expanded="true"] .chev::before { content:${JSON.stringify(t.hide)}; }

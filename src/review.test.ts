@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import {
-  applyChoices, buildPlacesMd, inline, loadResearch, placesPath, plural, renderPage, ResearchSchema, serve, summarize,
+  applyChoices, buildPlacesMd, inline, loadResearch, placesPath, plural, renderPage, ResearchSchema, serve, strings, summarize,
 } from "./review.js";
 
 const EXAMPLE = "examples/research.example.json";
@@ -35,7 +35,34 @@ test("Russian page: lang, strings, «все филиалы» for the all-branche
   const raw = JSON.parse(await fs.readFile(EXAMPLE_RU, "utf8"));
   assert.equal(ResearchSchema.safeParse({ ...raw, list: "ж".repeat(40) }).success, true);
   assert.equal(ResearchSchema.safeParse({ ...raw, list: "ж".repeat(41) }).success, false);
-  assert.equal(ResearchSchema.safeParse({ ...raw, lang: "de" }).success, false);
+  assert.equal(ResearchSchema.safeParse({ ...raw, lang: "Deutsch" }).success, false);
+});
+
+test("any language: Claude's labels over English, Continue per plural category", async () => {
+  const raw = JSON.parse(await fs.readFile(EXAMPLE, "utf8"));
+  const ca = ResearchSchema.parse({
+    ...raw,
+    lang: "ca",
+    ui: { filtered: "Descartats", cancel: "Cancel·la", go: { one: "Continua amb {n} lloc →", other: "Continua amb {n} llocs →" } },
+  });
+  const html = renderPage(ca);
+  assert.ok(html.includes('<html lang="ca">'));
+  assert.ok(html.includes("Descartats (1)"));
+  assert.ok(html.includes(">Cancel·la</button>"));
+  assert.ok(html.includes("Continua amb 3 llocs →"));
+  assert.ok(html.includes("Details ▾")); // not translated → English
+  assert.equal(strings(ca).go(1), "Continua amb 1 lloc →");
+  assert.equal(strings(ca).go(0), "Nothing selected");
+
+  // Polish has one / few / many: Intl.PluralRules picks the form.
+  const pl = strings({ lang: "pl", ui: { go: { one: "{n} miejsce", few: "{n} miejsca", many: "{n} miejsc", other: "{n} miejsca" } } });
+  assert.deepEqual([1, 3, 5, 22].map((n) => pl.go(n)), ["1 miejsce", "3 miejsca", "5 miejsc", "22 miejsca"]);
+
+  // No labels: an English page, still valid.
+  const de = ResearchSchema.parse({ ...raw, lang: "de" });
+  assert.ok(renderPage(de).includes('<html lang="en">'));
+  assert.ok(renderPage(de).includes("Filtered out (1)"));
+  assert.equal(ResearchSchema.safeParse({ ...raw, lang: "es", ui: { go: { other: "Continuar →" } } }).success, false); // no {n}
 });
 
 test("plural: Russian one/few/many", () => {

@@ -3,15 +3,19 @@
 # research/, artifacts/, plan.json and .gmaps-state.json always land in one place, wherever Claude
 # was started.
 #
-#   maps-lists dry|apply|resolve|review|clean|probe|check-plan|chrome [args…]
+#   maps-lists dry|apply|resolve|review|clean|probe|lists|check-plan|chrome [args…]
 #   MAPS_LISTS_HOME=/some/dir maps-lists …   # default ~/.maps-lists
 set -euo pipefail
 ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
 HOME_DIR="${MAPS_LISTS_HOME:-$HOME/.maps-lists}"
 
-command -v node >/dev/null || { echo "Node.js isn't installed. Install Node 18 or newer from https://nodejs.org." >&2; exit 1; }
-(( $(node -p 'process.versions.node.split(".")[0]') >= 18 )) ||
-  { echo "Node $(node -v) is too old. Install Node 18 or newer from https://nodejs.org." >&2; exit 1; }
+no_node() { # the skills read "NODE_MISSING" and offer to install it
+  echo "NODE_MISSING: $1 Install Node 18 or newer from https://nodejs.org" >&2
+  command -v brew >/dev/null && echo "  (Homebrew is installed: brew install node)" >&2
+  exit 1
+}
+command -v node >/dev/null || no_node "Node.js isn't installed."
+(( $(node -p 'process.versions.node.split(".")[0]') >= 18 )) || no_node "Node $(node -v) is too old."
 if [[ ! -x "$ROOT/node_modules/.bin/tsx" ]]; then
   echo "Installing dependencies (first run)…" >&2
   npm ci --omit=dev --silent --prefix "$ROOT" >&2 || { echo "npm ci failed in $ROOT" >&2; exit 1; }
@@ -32,12 +36,15 @@ mkdir -p "$HOME_DIR"
 cd "$HOME_DIR"
 tsx="$ROOT/node_modules/.bin/tsx"
 cmd="${1:-}"; shift || true
+# Sessions closed midway never reach maps-lists:run's cleanup. Where a flow starts, drop leftovers
+# untouched for a week (the state file and *.places.md stay; see src/clean.ts).
+[[ $cmd == review || $cmd == resolve ]] && { "$tsx" "$ROOT/src/clean.ts" --older-than 7 >/dev/null 2>&1 || true; }
 case "$cmd" in
   dry)        exec "$tsx" "$ROOT/src/run.ts" --dry-run "$@" ;;
   apply)      exec "$tsx" "$ROOT/src/run.ts" "$@" ;;
-  resolve|review|clean|probe) exec "$tsx" "$ROOT/src/$cmd.ts" "$@" ;;
+  resolve|review|clean|probe|lists) exec "$tsx" "$ROOT/src/$cmd.ts" "$@" ;;
   check-plan) exec "$tsx" "$ROOT/src/plan.ts" --check "${1:-plan.json}" ;;
   chrome)     exec bash "$ROOT/scripts/launch-chrome.sh" ;;
   home)       echo "$HOME_DIR" ;;
-  *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|check-plan|chrome|home [args…]" >&2; exit 64 ;;
+  *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|lists|check-plan|chrome|home [args…]" >&2; exit 64 ;;
 esac
