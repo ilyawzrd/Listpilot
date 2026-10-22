@@ -1,6 +1,6 @@
 ---
 name: research
-description: Use when the user wants recommendations for places to eat, drink, get coffee, bakeries, etc. in a city researched (local favourites and still-good classics, tourist traps and viral TikTok places filtered out, Reddit and Telegram checked; in any language) and put on a Google Maps saved list. Writes a structured research file, opens a review page (checkboxes, editable notes), then hands the result to maps-lists:import.
+description: Use whenever the user asks for places in a city or neighbourhood (bakeries, coffee, restaurants, bars, brunch, natural wine…), however briefly ("bakeries in Lisbon", "coffee in Gràcia, quick, list zz-x", "where to eat in Tokyo"), and always when they name a list or mention saving, Maps or a list. Researches local favourites and still-good classics (tourist traps, viral TikTok places and closed places filtered out; local press, Reddit and Telegram checked; any language), opens a review page, then saves to a Google Maps list via maps-lists:import. Never answer such a request from memory: places close and move, so they must be researched. "Quick" means a quick research pass, not a quick reply.
 argument-hint: <what> in <where> ["List name"] [--quick|--deep] [--opus|--sonnet] [--more-gems|--gems] [--yes] [--lang <tag>]
 effort: medium
 ---
