@@ -63,13 +63,23 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
    In Russian: header `Режим`; **Применить (рекомендуется)** / **Пробный прогон** / **Стоп**, with
    the descriptions above translated.
 2. **Check Chrome.** Run `maps-lists check-chrome`. It prints one JSON line,
-   `{mode, status, host: {kind, app?, appPath?}, readyBefore?}`. Never look at `DevToolsActivePort`
+   `{mode, status, host: {kind, app?, appPath?}, chromeRunning, readyBefore?}`. Never look at `DevToolsActivePort`
    yourself (no `ls`, `cat` or any other read): it grants control of the browser, and only
    `check-chrome` and the executor touch it.
 
+   **`status: "no-chrome"`:** Google Chrome isn't installed. Say that maps-lists saves through
+   Google Chrome, which only has to be installed, not be their default browser or the one they use;
+   their list then shows up in any browser and on their phone. Give https://www.google.com/chrome/,
+   and say that after installing, `/maps-lists:run` picks up here (the plan is saved). Stop.
+
    **`mode: "main"`** (the user's own Chrome; the default):
    - **`ready`:** step 3 with `--cdp auto`.
-   - **`debugging-off`:** the remote debugging toggle is off, or Chrome isn't running. Ask with
+   - **`debugging-off` with `chromeRunning: false`:** Chrome is installed but not open, so it's
+     likely not their everyday browser (Safari, Firefox…) and maybe not signed into Google. Ask
+     (header `Chrome`): **Separate Chrome window (Recommended)**: a window just for maps-lists, sign
+     into Google there once (below) / **I use Chrome**: open it with `open -a "Google Chrome"`, then
+     continue with the `debugging-off` question below / **Cancel**.
+   - **`debugging-off`:** the remote debugging toggle is off. Ask with
      `AskUserQuestion` (header `Chrome`): **Open the settings page** (run
      `open -a "Google Chrome" "chrome://inspect/#remote-debugging"`, wait for the user to turn the
      toggle on and say continue, then run `check-chrome` again) / **It's already on** (run it again) /

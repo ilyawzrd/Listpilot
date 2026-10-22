@@ -7,7 +7,9 @@ saves them to a Google Maps list in your own Chrome, with a short note for each 
 
 ## What you need
 
-- A Mac with [Google Chrome](https://www.google.com/chrome/)
+- A Mac with [Google Chrome](https://www.google.com/chrome/) installed. It doesn't have to be your default
+  browser or the one you use: if you browse with Safari or Firefox, Claude uses a Chrome window just for
+  maps-lists (sign into Google there once), and your lists show up in any browser and on your phone.
 - [Claude Code](https://claude.com/claude-code), signed in
 - [Node.js](https://nodejs.org/) version 18 or newer. If it's missing, Claude offers to install it
   (with Homebrew) the first time.

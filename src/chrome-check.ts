@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
@@ -19,7 +21,7 @@ import { CANDIDATE_DIRS } from "./connect.js";
  */
 
 export type Mode = "main" | "separate";
-export type Status = "ready" | "debugging-off" | "no-access" | "not-running";
+export type Status = "ready" | "debugging-off" | "no-access" | "not-running" | "no-chrome";
 /** Who macOS checks Full Disk Access against when Claude's commands read files. */
 export type Host = {
   kind: "terminal" | "desktop" | "editor" | "unknown";
@@ -60,6 +62,28 @@ function ancestry(): string[] {
     pid = Number(m[1]);
   }
   return out;
+}
+
+/** Google Chrome's .app, wherever it's installed; undefined when it isn't. */
+export function findChrome(): string | undefined {
+  const fixed = ["/Applications/Google Chrome.app", path.join(os.homedir(), "Applications", "Google Chrome.app")];
+  const found = fixed.find((p) => existsSync(p));
+  if (found) return found;
+  try {
+    return execFileSync("mdfind", ["kMDItemCFBundleIdentifier == 'com.google.Chrome'"], { encoding: "utf8" })
+      .split("\n").find((p) => p.endsWith(".app"));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Is the user's own Chrome running (not the maps-lists profile, which has --user-data-dir)? From
+ * `ps -axo args=` lines. Someone whose everyday browser is Safari or Firefox usually has it closed.
+ */
+export function everydayChromeRunning(psArgs: string[], chromeApp: string): boolean {
+  const bin = `${chromeApp}/Contents/MacOS/Google Chrome`;
+  return psArgs.some((l) => l.startsWith(bin) && !l.includes("--user-data-dir="));
 }
 
 /** main mode: readable file → ready; EPERM/EACCES anywhere → no-access; no file → debugging-off. */
@@ -109,7 +133,14 @@ async function main() {
   }
   const root = process.cwd();
   const mode = await readMode(root);
+  const chromeApp = findChrome();
+  if (!chromeApp) {
+    console.log(JSON.stringify({ mode, status: "no-chrome" satisfies Status }));
+    return;
+  }
   const status = mode === "separate" ? await checkSeparate() : await checkMain(CANDIDATE_DIRS);
+  const chromeRunning = everydayChromeRunning(
+    execFileSync("ps", ["-axo", "args="], { encoding: "utf8" }).split("\n"), chromeApp);
   const host = hostFrom(process.env.CLAUDE_CODE_EXECPATH, ancestry(), process.env.TERM_PROGRAM);
   // A Claude Code update moves the desktop app's copy, and macOS's grant stays with the old path.
   const { readyApp } = await readConfig(root);
@@ -117,7 +148,7 @@ async function main() {
     await updateConfig(root, { readyApp: host.appPath });
   }
   const readyBefore = status === "no-access" && !!readyApp && readyApp !== host.appPath && host.kind === "desktop";
-  console.log(JSON.stringify({ mode, status, host, ...(readyBefore ? { readyBefore } : {}) }));
+  console.log(JSON.stringify({ mode, status, host, chromeRunning, ...(readyBefore ? { readyBefore } : {}) }));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]!).href) await main();

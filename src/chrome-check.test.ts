@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { checkMain, hostFrom, readMode, writeMode } from "./chrome-check.js";
+import { checkMain, everydayChromeRunning, hostFrom, readMode, writeMode } from "./chrome-check.js";
 
 const INNER =
   "/Users/u/Library/Application Support/Claude/claude-code/2.1.299/4fa9694b7975/claude.app/Contents/MacOS/claude";
@@ -37,6 +37,16 @@ test("checkMain: ready, no access, debugging off", async () => {
   assert.equal(await checkMain([empty!]), "debugging-off");
   if (process.getuid?.() !== 0) assert.equal(await checkMain([empty!, locked!]), "no-access");
   await fs.chmod(path.join(locked!, "DevToolsActivePort"), 0o600);
+});
+
+test("everydayChromeRunning: the user's Chrome, not the maps-lists profile or helpers", () => {
+  const app = "/Applications/Google Chrome.app";
+  const bin = `${app}/Contents/MacOS/Google Chrome`;
+  const helper = `${app}/Contents/Frameworks/Google Chrome Framework.framework/Helpers/Google Chrome Helper.app/x --type=renderer`;
+  const mapsLists = `${bin} --remote-debugging-port=9333 --user-data-dir=/Users/u/.gmaps-automation-profile`;
+  assert.equal(everydayChromeRunning([helper, mapsLists, "/bin/zsh"], app), false);
+  assert.equal(everydayChromeRunning([`${bin} --no-startup-window`, mapsLists], app), true);
+  assert.equal(everydayChromeRunning([bin], app), true);
 });
 
 test("readMode/writeMode: main by default, remembered, other keys kept", async () => {

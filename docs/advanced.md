@@ -161,6 +161,13 @@ them publicly.
 
 ## Connecting to Chrome
 
+Saving always goes through **Google Chrome**, whatever your default browser is: Safari and Firefox
+can't be driven this way. Chrome only has to be installed (Claude says so if it isn't). The review
+page opens in your default browser, and saved lists show up in any browser and on your phone. If
+your own Chrome isn't open when it's time to save, Claude assumes it's not your everyday browser and
+recommends the separate window below. Chromium browsers (Brave, Edge, Arc) work for the
+"your normal browser" mode; the separate window always uses Google Chrome.
+
 **Your main Chrome (default, Chrome 144+).** Switch on `chrome://inspect/#remote-debugging`. Chrome
 asks you to **Allow** each connection and shows an "automated test software" banner while one is
 attached. Switch the toggle off when you're done. The executor finds the connection details in

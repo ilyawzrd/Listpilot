@@ -8,7 +8,14 @@
 # anyway. Sign into Google once in the window this opens; the profile remembers it.
 set -euo pipefail
 
-CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+APP="/Applications/Google Chrome.app"
+[[ -d "$APP" ]] || APP="$HOME/Applications/Google Chrome.app"
+[[ -d "$APP" ]] || APP=$(mdfind "kMDItemCFBundleIdentifier == 'com.google.Chrome'" 2>/dev/null | grep '\.app$' | head -1)
+if [[ -z "$APP" || ! -d "$APP" ]]; then
+  echo "Google Chrome isn't installed. Get it from https://www.google.com/chrome/ (it doesn't need to be your default browser)." >&2
+  exit 1
+fi
+CHROME="$APP/Contents/MacOS/Google Chrome"
 PROFILE="${GMAPS_PROFILE:-$HOME/.gmaps-automation-profile}"
 PORT="${CDP_PORT:-9333}"
 
