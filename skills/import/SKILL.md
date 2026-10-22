@@ -174,8 +174,14 @@ else's picks and go through the review page.
 - Skip steps 0 and 3. Step 1 takes the places from the message; a note only when the user gave one
   ("…with the note: get the morning bun"), in their words. Ask for the list name if there's none.
 - Resolve as in step 4, using the city from the message, the list name or the list's other places.
-  When a name matches several places and the user didn't pin one (a street, a neighbourhood),
-  ask with `AskUserQuestion` (header `Which one?`). **Always** include **All of them** as the first
+  **Count the matches strictly.** A match is any candidate in that city whose name is the name the
+  user gave or the same brand: for "Tartine Bakery" the lookup returns Tartine Bakery (600 Guerrero
+  St), Tartine Bakery (351 California St), Tartine Manufactory and Tartine Inner Sunset, which is
+  4 matches. Unrelated names in the results (Mariposa Baking, Uncle Tetsu) don't count. Exactly
+  one match → save it. Two or more → ask, even when one is the famous original: which one the user
+  means is their call, not yours. Skip the question only if the user pinned it (a street, a
+  neighbourhood, "the original").
+  Ask with `AskUserQuestion` (header `Which one?`). **Always** include **All of them** as the first
   option, labelled with the count (`All 4 locations`, in Russian `Все 4 места`), whether or not it
   looks like a chain; then one option per candidate as `Name · address`. The question takes at
   most 4 options, so with more than 3 candidates show the 3 likeliest and say in the question
