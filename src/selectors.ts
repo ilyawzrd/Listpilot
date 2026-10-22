@@ -22,6 +22,8 @@ type Text = {
   addPlace: Name; editIcon: Name; addNote: RegExp; note: RegExp; chooseIcon: Name; emojiPalette: Name;
   /** Lines of the list view's ARIA snapshot, for parseRows. */
   rowAddNote: RegExp; rowNote: RegExp; rowClosed: RegExp;
+  /** A selected row's "Delete" button (matched only to skip it while parsing; never clicked). */
+  rowDelete: RegExp;
 };
 
 // Never-click names: "Delete" / "Удалить" (row, on hover) and "Clear icon" / "Borrar icono" /
@@ -58,6 +60,7 @@ export const TEXT: Record<Locale, Text> = {
     rowAddNote: /^button "Add note"/,
     rowNote: /^textbox "Note"(?::|$)/,
     rowClosed: /^button "(.+) (?:Permanently|Temporarily) closed"$/,
+    rowDelete: /^button "Delete"$/,
   },
   // Probe with hl=es (Oct 2026) verified the rest. Still best guesses, because the probe never saw them:
   // signIn, permanentlyClosed / rowClosed (closed place), save's "Guardado (N)" (an already-saved place).
@@ -91,6 +94,7 @@ export const TEXT: Record<Locale, Text> = {
     rowAddNote: /^button "(?:Añadir|Agregar) (?:una )?nota"/,
     rowNote: /^textbox "Nota"(?::|$)/,
     rowClosed: /^button "(.+) Cerrad[oa] (?:permanentemente|temporalmente)"$/,
+    rowDelete: /^button "Eliminar"$/, // unverified
   },
   // Probe with hl=ru (Oct 2026) verified the rest. Still best guesses, because the probe never saw them:
   // signIn, permanentlyClosed / rowClosed (closed place), save's "Сохранено (N)" (an already-saved place).
@@ -126,6 +130,7 @@ export const TEXT: Record<Locale, Text> = {
     rowAddNote: /^button "Добавить (?:примечание|заметку)"/,
     rowNote: /^textbox "Примечание"(?::|$)/,
     rowClosed: /^button "(.+) Закрыто (?:навсегда|временно)"$/,
+    rowDelete: /^button "Удалить"$/,
   },
 };
 

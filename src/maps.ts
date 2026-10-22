@@ -377,8 +377,12 @@ export function parseRows(snapshot: string, t = TEXT[locale()]): Row[] {
       const plain = l.match(/^button "(.*)"$/);
       if (closed) title = unyaml(closed[1]!);
       // A place with no reviews has none either: button "Tartine Bakery Bakery" (title + category),
-      // straight before its note control.
-      else if (plain && isNoteCtrl(lines[i + 1])) { title = unyaml(`"${plain[1]}"`); bare = true; }
+      // before its note control. A selected row (e.g. right after "Add note") gets a childless
+      // button "Delete" in between; with a row already pending, that one is skipped.
+      else if (plain && title === null && !t.rowDelete.test(l) &&
+        (isNoteCtrl(lines[i + 1]) || (t.rowDelete.test(lines[i + 1] ?? "") && isNoteCtrl(lines[i + 2])))) {
+        title = unyaml(`"${plain[1]}"`); bare = true;
+      }
     }
   }
   return rows;

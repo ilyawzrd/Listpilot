@@ -124,9 +124,14 @@ async function resolvePlace(place: Place, resolved: Resolved[], r: ListReport): 
 }
 
 function warnShared(resolved: Resolved[], r: ListReport) {
-  const shared = [...new Set(resolved.map((p) => p.title))].filter((t) => countTitle(resolved, t) > 1);
+  // Same-title groups sharing one note are handled as a whole in finishList; only differing notes
+  // can land on the wrong branch, so only those are worth a warning.
+  const shared = [...new Set(resolved.map((p) => p.title))].filter((t) => {
+    const group = titleGroup(resolved, t, (p) => p.title);
+    return group.length > 1 && new Set(group.map((p) => norm(p.note ?? ""))).size > 1;
+  });
   if (shared.length) {
-    r.warnings.push(`Same-name places (chain branches): ${shared.join(", ")}. The list view can't tell them apart, so their notes should match.`);
+    r.warnings.push(`Same-name places with different notes: ${shared.join(", ")}. The list view can't tell them apart, so a note may land on the wrong one.`);
   }
   return shared;
 }

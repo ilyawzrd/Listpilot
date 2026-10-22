@@ -185,3 +185,39 @@ test("parseRows: a place without reviews is a bare row, and joins its title grou
   assert.deepEqual(titleGroup(rows, "Tartine", (r) => r.title, plan).map((r) => r.title), []); // longer title wins
   assert.deepEqual(titleGroup(rows, "Tartine Manufactory", (r) => r.title, plan).length, 1);
 });
+
+test("parseRows: a selected bare row (Delete button before its note box) and a selected normal row", () => {
+  const snap = [
+    '- button "Tartine Manufactory 4.5 stars 4,503 Reviews $20 to $30 Bakery":',
+    "  - text: Tartine Manufactory",
+    '- button "Delete"',
+    '- textbox "Note": get the morning bun',
+    '- button "Tartine Bakery Bakery"',
+    '- button "Delete"',
+    '- textbox "Note"',
+    '- button "Tartine Bakery 4.5 stars 5,992 Reviews $10 to $20 Bakery":',
+    "  - text: Tartine Bakery",
+    '- textbox "Note": Morning bun',
+  ].join("\n");
+  assert.deepEqual(parseRows(snap, TEXT.en).map((r) => [r.title, r.ctrl, r.nth, !!r.bare]), [
+    ["Tartine Manufactory", "box", 0, false],
+    ["Tartine Bakery Bakery", "box", 1, true],
+    ["Tartine Bakery", "box", 2, false],
+  ]);
+});
+
+test("parseRows: a bare row moved to the top sits after Share / Add a place, which aren't rows", () => {
+  const snap = [
+    '- button "Share"',
+    '- button "Add a place"',
+    '- button "Tartine Bakery Bakery"',
+    '- textbox "Note": get the morning bun',
+    '- button "Tartine Inner Sunset 4.3 stars 736 Reviews":',
+    "  - text: Tartine Inner Sunset",
+    '- textbox "Note": get the morning bun',
+  ].join("\n");
+  assert.deepEqual(parseRows(snap, TEXT.en).map((r) => [r.title, !!r.bare]), [
+    ["Tartine Bakery Bakery", true],
+    ["Tartine Inner Sunset", false],
+  ]);
+});
