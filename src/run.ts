@@ -140,12 +140,22 @@ function warnShared(resolved: Resolved[], r: ListReport) {
  * Resolves everything and checks each place's own Save-dialog checkbox while its page is open
  * (exact even for chain branches, which the list view can't tell apart). Writes nothing.
  */
+/**
+ * Where the run is, for anything showing progress (the maps-lists band): artifacts/progress.json,
+ * `{ step, done, total, current, list, at }`. Best effort; never fails the run.
+ */
+async function progress(step: "saving" | "checking" | "notes" | "verifying", list: string, done: number, total: number, current = "") {
+  const body = JSON.stringify({ step, list, done, total, current, at: Date.now() });
+  await fs.mkdir(ARTIFACTS, { recursive: true }).then(() => fs.writeFile(`${ARTIFACTS}/progress.json`, body)).catch(() => {});
+}
+
 async function dryRunList(list: ListPlan, state: State, r: ListReport): Promise<ListReport> {
   // A list recorded in state exists for sure; the Save menu has failed to show a just-created one.
   let exists: boolean | undefined = list.name in state.lists ? true : undefined;
   const resolved: Resolved[] = [];
   const unknown: Resolved[] = []; // list exists but isn't in this place's Save menu yet
-  for (const place of list.places) {
+  for (const [i, place] of list.places.entries()) {
+    await progress("checking", list.name, i, list.places.length, place.name);
     const p = await resolvePlace(place, resolved, r);
     if (!p) { await pause(); continue; }
     const page = tab;
@@ -192,7 +202,8 @@ async function applyList(list: ListPlan, state: State, r: ListReport): Promise<L
   const resolved: Resolved[] = [];
   // A list recorded in state exists for sure; the Save menu has failed to show a just-created one.
   let listReady = list.name in state.lists;
-  for (const place of backwards ? [...list.places].reverse() : list.places) {
+  for (const [i, place] of (backwards ? [...list.places].reverse() : list.places).entries()) {
+    await progress("saving", list.name, i, list.places.length, place.name);
     const p = await resolvePlace(place, resolved, r);
     if (!p) { await pause(); continue; }
     // No skipping by name: branches of a chain share one. Each place's own checkbox in the Save
@@ -302,7 +313,8 @@ async function finishList(
   if (list.ordered && toWrite.length && toWrite.length < resolved.length) {
     r.warnings.push("Only some places get a note written; those rows move to the top, so the ranking may be off.");
   }
-  for (const p of toWrite) {
+  for (const [i, p] of toWrite.entries()) {
+    await progress("notes", list.name, i, toWrite.length, p.title);
     try {
       const res = await retry(page, `note-${p.title}`, () => writeNote(page, p.title, p.note!, nthOfTitle(p), titles));
       if (res === "written") r.notesWritten.push(p.title);
@@ -312,6 +324,7 @@ async function finishList(
   }
 
   // 5. Verify against the server, not the optimistic UI.
+  await progress("verifying", list.name, resolved.length, resolved.length);
   await retry(page, "verify-reload", () => hardReload(page));
   const observed = await readList(page);
   const rowFor = (p: Resolved) => titleGroup(observed, p.title, (i) => i.title, titles)[nthOfTitle(p)];
