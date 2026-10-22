@@ -10,8 +10,8 @@ effort: medium
 The optional first step in front of `maps-lists:import`. By default the research runs through the
 `deep-research` skill (parallel research agents, like desktop Research mode). You then filter the
 result into `research/<slug>.json` and open the review page, where the user ticks places and edits
-notes. The page writes the places file, which you hand to `maps-lists:import`. Apply resolves it and
-passes it to `maps-lists:run` for the Chrome part. Nothing is written to Maps until the user picks Apply there.
+notes. The page writes the places file, which you hand to `maps-lists:import`. Import resolves it and
+passes it to `maps-lists:run` for the Chrome part. Nothing is written to Maps until the user picks Save to Maps there.
 
 ## Data folder
 
@@ -251,8 +251,8 @@ Every research pass covers these, per category:
    - `1`: the JSON is invalid. Fix it and run again.
 5. **Hand off.** Invoke the `maps-lists:import` skill with
    `research/<slug>-<YYYYMMDD>.places.md "<List name>"`, plus `--yes` and `--lang <tag>` if they
-   were given. Apply resolves
-   every place, previews it, and asks Apply / Dry run before anything is written.
+   were given. Import resolves
+   every place, previews it, and asks before anything is saved.
 
 ## Rules
 

@@ -35,7 +35,7 @@ for the rest of that turn only, so a new user prompt goes back to the session mo
 - `src/connect.ts`: `--cdp auto` (reads `DevToolsActivePort`), `http://…` discovery, or `ws://…`
 - `skills/research/SKILL.md`: optional first step. "Bakeries in Lisbon" → the `deep-research` skill (or one quick pass with `--quick`) → filtered research (no tourist traps or viral places; sources: local press, Reddit snippets, Telegram `t.me/s/` previews, Russian media + Yandex/2GIS for Russian-speaking cities) → `research/<slug>-<date>.json` → review page (`maps-lists review`) → `.places.md` → apply. Step 0 asks depth + model with trade-offs (skips what the request says; a different model → user types `/model …` and says continue). Filter tests quality, not fame: still-rated famous places stay as `Classic.`; `--more-gems` ("include hidden gems") digs for lesser-known places and keeps ≤3 classics per category, `--gems` ("only") moves all of them to `excluded` (`classic:`); bare "hidden gems" → asked; nothing is dropped silently
 - `skills/import/SKILL.md`: Sonnet. Places the user names in their own message = direct add: no review page, ambiguous names asked via `AskUserQuestion` (never guessed), hand-off with `--apply` (run skips the Apply / Dry run question). A file (`.md`; `.txt`/PDF/HTML/`.eml`/image via Read; Word/RTF/ODT via `textutil`; anything but `.md` first saved as `research/<slug>-<date>.source.md`) or pasted text → review page (`research/<slug>.json`; skipped for a `*.places.md`) → resolved `plan.json` + `artifacts/plan-summary.md` → run. Sample input: `examples/places.example.md`
-- `skills/run/SKILL.md`: Haiku. Shows the summary, asks Apply (recommended, new or existing list) / Dry run, checks Chrome, runs, reports from `report.json`, cleans up after a verified apply. `--report` only reads the last report. Chrome step starts with `check-chrome`: no access in a terminal → Full Disk Access pane (`x-apple.systempreferences:…?Privacy_AllFiles`) + Cmd-Q; in the desktop app → separate window recommended (remembered), or the inner copy's path, or Terminal
+- `skills/run/SKILL.md`: Haiku. Shows the summary, asks Save to Maps / Stop (no dry run offered; only on request; `--apply`/`--yes` skip the question), checks Chrome, runs, reports from `report.json`, cleans up after a verified apply. `--report` only reads the last report. Chrome step starts with `check-chrome`: no access in a terminal → Full Disk Access pane (`x-apple.systempreferences:…?Privacy_AllFiles`) + Cmd-Q; in the desktop app → separate window recommended (remembered), or the inner copy's path, or Terminal
 - `skills/lists/SKILL.md`: Haiku. `maps-lists lists` → table with Maps links, or one list's places merged across its places files; open the folder, copy to Downloads, hand off to research/import to add
 - `README.md` is for non-technical users (plugin install, asking Claude, troubleshooting). Commands, flags and internals go in `docs/advanced.md`
 
@@ -141,9 +141,9 @@ npm test                                                                 # pure 
   k-th entry with the k-th same-name row for notes and verify, and drops entries that resolve to
   the same place id. "Same name" means exact title first (`titleGroup`), falling back to `sameTitle`
   prefix matching, so "Septime" and "Septime La Cave" never share a group.
-- `dry` is optional. Apply is the recommended choice for new and existing lists: it checks each
-  place's Save-dialog checkbox, skips closed/unresolved places, and never saves twice. Dry run
-  shows what's new first. Writes can't be undone.
+- `dry` is for development only; the skills don't offer it (Oct 2026: it duplicated the summary and cost a full Chrome pass). Apply is safe for new and existing lists: it checks each
+  place's Save-dialog checkbox, skips closed/unresolved places, and never saves twice. Writes
+  can't be undone, but they only ever add.
 - List names are capped at 40 characters (`MAX_LIST_NAME` in `plan.ts`): Maps cuts longer ones,
   and the executor then can't find the list it created.
   Use throwaway lists for testing writes.

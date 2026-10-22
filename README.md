@@ -80,12 +80,12 @@ When it's done, a **review page** opens in your browser:
 - Click a place to see why it was picked, what to order and where it was mentioned.
 - Places that were filtered out are at the bottom, with the reason, in case you want some back.
 
-Press **Continue**. Claude looks every place up on Google Maps and asks whether to **Apply** (save them
-to your list) or do a **Dry run** (just show what would change). Chrome then asks you to **Allow** the
-connection. Click it, and Claude saves the places and checks that everything arrived.
+Press **Continue**. Claude looks every place up on Google Maps, shows what it found, and asks
+**Save to Maps** or **Stop**. Chrome then asks you to **Allow** the connection. Click it, and Claude
+saves the places and checks that everything arrived.
 
 **Just one or two places?** Name them: "add Mr. Holmes Bakehouse in San Francisco to my SF list".
-Claude looks them up and saves them straight away, with no review page and no Apply question. If a
+Claude looks them up and saves them straight away, with no review page and no Save question. If a
 name matches several places, it asks which one; add "with the note: …" to give it a note.
 
 **Already have a list of places?** Type your request and drag the file into the terminal window

@@ -50,7 +50,7 @@ the signed-in account, so never ask about it.
 4. **What happens next.** Before handing off, tell the user as a short Markdown block: a
    `### What happens next` heading (translated), then a numbered list, each step starting with an
    icon (🔎 research or 📄 reading the file, 🌐 review page, 📍 looking places up on Maps,
-   🔐 Chrome access, ✅ Apply), one line each, covering:
+   🔐 Chrome access, ✅ saving), one line each, covering:
    - For research: Claude asks how deep to go and which model to use, then researches. Famous
      places locals still rate stay in as classics; tourist traps, viral spots and closed places
      are filtered out.
@@ -60,7 +60,7 @@ the signed-in account, so never ask about it.
    - The Maps step needs Chrome's remote debugging switched on
      (`chrome://inspect/#remote-debugging`; Claude opens it if needed) and an **Allow** click in
      Chrome, plus Full Disk Access for the terminal. Claude walks them through both if needed.
-   - Nothing is written to the list before they choose Apply or Dry run.
+   - Nothing is saved to the list before they choose Save to Maps.
 5. **Hand off** in the same turn: invoke `maps-lists:research` with
    `<what> in <where> "<List name>"` (in the user's language: `<what> в <where>`, `<what> en <where>`…), plus
    `--quick`/`--deep`, `--opus`/`--sonnet` and `--more-gems`/`--gems` if the user already said so, and

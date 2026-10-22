@@ -1,7 +1,7 @@
 ---
 name: run
-description: Use when a validated plan.json is ready (usually handed over by maps-lists:import) and the user wants it dry-run or applied to Google Maps through their Chrome, or wants the last run's report. Runs the executor and reports; makes no judgment calls.
-argument-hint: [plan.json] [--apply] [--yes] [--account <email>] [--report] [--lang <tag>]
+description: Use when a validated plan.json is ready (usually handed over by maps-lists:import) and the user wants it saved to Google Maps through their Chrome, or wants the last run's report. Runs the executor and reports; makes no judgment calls.
+argument-hint: [plan.json] [--apply|--yes] [--account <email>] [--report] [--lang <tag>]
 model: haiku
 effort: medium
 ---
@@ -32,14 +32,13 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
 `$ARGUMENTS`:
 
 - **Plan path:** defaults to `plan.json` in the data folder.
-- **`--yes`:** after a dry run, apply without asking again.
-- **`--apply`:** the user named the places to add themselves (a direct add from
-  `maps-lists:import`): show the summary, skip step 1's question, and apply.
-- **`--account <email>`:** add it to every `maps-lists dry` / `maps-lists apply` command.
+- **`--apply`** (or `--yes`): save without asking: the user named the places themselves (a direct
+  add from `maps-lists:import`) or said not to ask. Show the summary, skip step 1's question.
+- **`--account <email>`:** add it to the `maps-lists apply` command.
 - **`--lang <tag>`:** the conversation language. Talk to the user in it and use it for every
   question and the report; Russian strings are given below, translate the English ones for any other
   language. Without it, use the language the user writes in. **Never pass this
-  `--lang` to `maps-lists dry` / `maps-lists apply`:** their own `--lang` is the Maps UI language and
+  `--lang` to `maps-lists apply`:** its own `--lang` is the Maps UI language and
   stays at its default (`auto`).
 - **`--report`:** skip to step 4. Read the last `artifacts/report.json` and report it (e.g. after
   the user ran the command in their own terminal).
@@ -48,15 +47,18 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
 
 1. **Show the summary.** Print `artifacts/plan-summary.md` (written by `maps-lists:import`) to the
    user as is. If it's missing, read the plan and print the list name and the number of places instead.
-   With `--apply`, go straight to step 2 and apply. Otherwise ask with `AskUserQuestion` (header
-   `Mode`), in this order:
-   - **Apply (Recommended)**, for new and existing lists alike: creates or updates the list, saves
-     places, appends notes, then hard-reloads and verifies. `apply` checks each place's own
-     Save-dialog checkbox, skips closed and unresolved places, and never saves a place twice.
-     Nothing is ever deleted, but a wrong place has to be removed by hand.
-   - **Dry run:** optional. Opens every place in Chrome and reads its Save dialog to show what's
-     new and what's already in the list. Writes nothing.
-   - **Stop:** leaves the plan for later.
+   With `--apply` or `--yes`, go straight to step 2. Otherwise ask with `AskUserQuestion` (header
+   `Save`, in Russian `Сохранить`):
+   - **Save to Maps (Recommended)**: creates or updates the list, saves the places, appends
+     notes, then reloads and checks everything arrived. Places already in the list are skipped,
+     closed ones too; nothing is ever deleted or overwritten. (In Russian: **Сохранить в Карты
+     (рекомендуется)**.)
+   - **Stop**: the plan stays for later (`/maps-lists:run`). (In Russian: **Стоп**.)
+
+   Don't offer a dry run. Only if the user asks for one ("dry run", "just check, don't save"),
+   run `maps-lists dry` instead of `apply` in step 3: it opens every place and reads whether it's
+   already in the list, writing nothing; report it with the same layout, headed `Dry run` and
+   "Would add".
 
    In Russian: header `Режим`; **Применить (рекомендуется)** / **Пробный прогон** / **Стоп**, with
    the descriptions above translated.
@@ -116,8 +118,7 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
 3. **Run.** In main mode, tell the user to click **Allow** in Chrome when it asks (in Russian:
    «Когда Chrome спросит, нажмите **Allow** (Разрешить)»; the button may be in Chrome's own
    language); the separate window doesn't ask. Then run with Bash, with `timeout: 600000`:
-   - Dry run: `maps-lists dry plan.json` (+ `--cdp auto` in main mode)
-   - Apply: `maps-lists apply plan.json` (+ `--cdp auto` in main mode)
+   `maps-lists apply plan.json` (+ `--cdp auto` in main mode)
 
    Use the plan path given in place of `plan.json`, and add `--account <email>` if it was given.
    Expect about 5–10 s per place. In main mode, say once that Chrome opens a tab of its own for this,
@@ -132,7 +133,7 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
 4. **Report** from `artifacts/report.json`. It's an array with one entry per list. Write it as
    Markdown (not inside a code block), one block per list, in this shape, leaving out empty parts:
 
-   > ## ✅ Apply — zz-test · new list
+   > ## ✅ Saved — zz-test · new list
    >
    > | Added | Already in list | Notes written | Not found | Failed |
    > |:-----:|:-----:|:-----:|:-----:|:-----:|
@@ -142,37 +143,33 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
    > **Not found:** El Granjero (no match on Maps)
    > 📍 [Open zz-test in Google Maps](<the list's url from .gmaps-state.json>)
 
-   - Heading icon: ✅ everything verified (dry run: nothing failed) · ⚠️ verify found something
+   - Heading icon: ✅ everything verified · ⚠️ verify found something
      missing, or places weren't found · ❌ failed places or the run stopped. Heading text:
-     `Apply` or `Dry run`, the list name, `new list` / `existing list` (`created`).
-   - Table columns ← report fields: Added ← `added` (dry run: "Would add"), Already in list ←
-     `alreadyPresent`, Notes written ← `notesWritten` (leave out for a dry run), Not found ←
+     `Saved` (`Сохранено`), the list name, `new list` / `existing list` (`created`).
+   - Table columns ← report fields: Added ← `added`, Already in list ←
+     `alreadyPresent`, Notes written ← `notesWritten`, Not found ←
      `unresolved` (closed places count here), Failed ← `failed`.
    - Then one bold-labelled line each, only when there's something to say: **Verify:** (apply
-     only: ✅ … or ⚠️ missing `<names>` / notes missing `<names>`), **Not found:** and
+     ✅ … or ⚠️ missing `<names>` / notes missing `<names>`), **Not found:** and
      **Failed:** with `name (reason)` comma-separated (a bullet list when more than 5),
      **Warnings:**.
    - 📍 link: the list's `url` in `.gmaps-state.json` in the data folder, when it has one.
-   - In another language, translate the labels (in Russian: Применение / Пробный прогон, новый
+   - In another language, translate the labels (in Russian: Сохранено, новый
      список / существующий, Добавлено, Уже в списке, Заметок, Не найдено, Ошибки, Проверка,
      Предупреждения, «Открыть в Google Картах»).
    Place names stay as the report has them; translate the reasons and warnings.
    Exit code 2 means verification found missing places or notes. For a failure, read the
    matching `artifacts/*-fail-*.yaml` to give the reason in a few words. Never paste the yaml:
    it contains the account email.
-   - **After a dry run:** remove the places reported as permanently closed from the plan and say
-     which ones. If several places failed with "Page crashed", say the Chrome tab crashed (not the
-     places) and keep them in the plan. Then, unless `--yes` was given, ask with `AskUserQuestion`
-     (header `Next`): **Apply now** / **Stop** (Stop leaves the plan for a later
-     `maps-lists apply`). In Russian: header `Дальше`; **Применить сейчас** / **Стоп**. With `--yes`, go straight to step 3 with Apply.
-   - **After apply:** list whatever `verify` found missing and offer to retry just those, with a
+   - If several places failed with "Page crashed", say the Chrome tab crashed (not the places).
+   - List whatever `verify` found missing and offer to retry just those, with a
      plan containing only those places (`plan.retry.json`, same list name; places already saved
      are skipped anyway).
    - **Clean up only after a fully verified apply** (`verify.ok` for every list): run
      `maps-lists clean` and add its last line to the report after 🧹 ("🧹 Cleaned 14 items; kept
      research/….places.md"). Never clean after a dry run or a failed apply: the retry and the
-     failure artifacts need those files. End those reports with "Run `maps-lists clean` when you're
-     done." (in Russian: «Когда закончите, запустите `maps-lists clean`.»)
+     failure artifacts need those files. End those reports with "Say 'clean up maps-lists' when
+     you're done." (in Russian: «Когда закончите, скажите "очисти maps-lists".»)
 
 ## New list vs. update
 
@@ -183,9 +180,8 @@ exact only for a list the executor creates.
 
 ## Rules
 
-- Never run `apply` unless the user picked Apply (step 1 or 4), passed `--yes`, or it's a direct
-  add (`--apply`). `--yes` only skips the question after a dry run; without `--apply`, step 1's
-  question is always asked.
+- Never run `apply` unless the user picked Save to Maps in step 1, or `--apply`/`--yes` was
+  given. Without them, step 1's question is always asked.
 - Never delete places or lists and never change sharing. The executor has no code path for either.
 - Single-quote Maps URLs in zsh (`!` triggers history expansion inside double quotes).
 - Never print the contents of `DevToolsActivePort` and never paste `artifacts/*.yaml`.

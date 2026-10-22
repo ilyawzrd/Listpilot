@@ -25,7 +25,7 @@ You rarely need these names: asking in plain words picks the right one.
 | `/maps-lists:start` | asks research or a list you have, then what / where / list name | your session's |
 | `/maps-lists:research` | asks depth + model, researches, filters, opens the review page | your choice (see below) |
 | `/maps-lists:import` | a file or pasted list → review page → places looked up on Maps → `plan.json` | Sonnet |
-| `/maps-lists:run` | Apply / Dry run in your Chrome, report, cleanup | Haiku |
+| `/maps-lists:run` | saves to Maps in your Chrome, report, cleanup | Haiku |
 | `/maps-lists:lists` | the lists you've made, their places and Maps links | Haiku |
 
 Everything runs at **medium** effort.
@@ -47,7 +47,7 @@ Add them to the request in words or as flags:
 | "with Opus" / "on Sonnet" | `--opus` / `--sonnet` | research model; asked if you don't say |
 | "include hidden gems" | `--more-gems` | digs harder for lesser-known places; keeps about 3 classics per category |
 | "hidden gems only" | `--gems` | classics go to the filtered-out section instead |
-| "don't ask again after the dry run" | `--yes` | apply right after a dry run |
+| "save without asking" | `--yes` | no Save to Maps question |
 | "use my account you@gmail.com" | `--account you@gmail.com` | stop if Chrome is signed in to another account |
 | (write in your language) | `--lang es` | the whole flow in that language (any language tag) |
 
@@ -83,7 +83,7 @@ review snippets and Telegram as a primary source.
 
 ### Adding places you name
 
-"Add Tartine and Morreig to zz-test" is a direct add: no review page and no Apply / Dry run question,
+"Add Tartine and Morreig to zz-test" is a direct add: no review page and no Save question,
 since you've already decided. Claude says in one line what it matched (`📍 Name · address → list`)
 and saves. A name that matches several places, or a chain, gets a quick "which one?" question
 (with "All branches" for a chain); a note only goes in if you give one. Pasted lists, files and
@@ -103,12 +103,13 @@ research does (skipped for a `*.places.md`, which was already reviewed). Then it
 on Maps and flags anything ambiguous. Without a name, the list is named after the file's title;
 names can be at most 40 characters (Maps cuts longer ones), so a longer title is shortened.
 
-### Apply or dry run
+### Saving
 
-- **Apply is recommended for new and existing lists.** It checks each place's own Save-dialog
-  checkbox, never saves a place twice, and skips closed and unresolved places. For a new list,
-  Claude shows the places it found first.
-- **Dry run** shows what's new in an existing list first. It writes nothing.
+- Before saving, Claude shows every place it found and asks **Save to Maps** or **Stop**. Saving
+  checks each place's own Save-dialog checkbox, never saves a place twice, and skips closed and
+  unresolved places, so it's safe for new and existing lists alike.
+- There's no dry run in the normal flow: the summary already shows what will be saved, and saving
+  only ever adds. Say "dry run" or "just check, don't save" if you want one anyway.
 - Nothing is ever deleted, so a wrong place has to be removed by hand. Existing notes get the new
   note appended with ` · `, never overwritten.
 - Places removed from your file are **not** removed from Maps.
@@ -189,7 +190,7 @@ profile remembers it. The choice is remembered in `~/.maps-lists/config.json`
 running. It doesn't ask you to Allow each connection.
 
 **Signed in to several Google accounts?** Say which one (`--account you@gmail.com`, or
-`export GMAPS_ACCOUNT=you@gmail.com`). Dry run and apply then stop before writing anything if Chrome
+`export GMAPS_ACCOUNT=you@gmail.com`). Saving then stops before writing anything if Chrome
 is on a different account.
 
 # Development
@@ -220,7 +221,7 @@ Claude Code hasn't. Outside Claude, call it by its full path.
 <command>` runs the same scripts on `~/.maps-lists`.
 
 ```bash
-npm run dry -- plan.json --cdp auto      # resolves every place, checks if it's already in the list, writes nothing
+npm run dry -- plan.json --cdp auto      # development: resolves every place, checks if it's already in the list, writes nothing
 npm run apply -- plan.json --cdp auto    # saves places and notes, then verifies after a hard reload
 npm run review -- research/<slug>.json   # (re)open the review page; --check validates only
 npm run resolve -- --query "Langer's Deli Los Angeles"   # candidates with name, address and Maps URL, no Chrome

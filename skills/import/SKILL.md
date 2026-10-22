@@ -10,7 +10,7 @@ effort: medium
 
 You do the judgment work: parse, let the user review the places on the review page, resolve,
 build `plan.json`. Then `maps-lists:run` (on a smaller
-model) runs the executor (`maps-lists dry` / `maps-lists apply`), which only clicks.
+model) runs the executor (`maps-lists apply`), which only clicks.
 
 ## Data folder
 
@@ -40,7 +40,7 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
   - places pasted straight into the conversation (in `$ARGUMENTS` or the user's message);
   - neither: ask for it, in one line ("drag the file in here, or paste the list").
 - **Optional list name** (quoted or the remaining words): overrides the file's title.
-- **Optional `--yes`:** after a dry run, go on to apply without asking again (passed to `maps-lists:run`).
+- **Optional `--yes`:** save without asking (passed to `maps-lists:run`).
 - **Optional `--account <email>`:** the account guard (passed to `maps-lists:run`).
 - **Optional `--lang <tag>`:** the conversation language. Without it, use the language the user
   writes in, whatever it is. Your messages, questions and `artifacts/plan-summary.md` are in it,
@@ -154,7 +154,7 @@ session started from a terminal with Full Disk Access.
    > ⚠️ **Not found:** Padaria X (two places with that name in Lisbon; skipped)
 
    - **New list:** every resolved place as `**Maps name** — address`, grouped under `###`
-     headings as in the document. That's the preview, since a dry run of a new list adds nothing.
+     headings as in the document. That's the preview before anything is saved.
    - **Update** (`existing list`): the counts line, the not-found line, then the two limits from
      "New list vs. update" below as a short ℹ️ note.
    - Each not-found place with what was found for it. Leave out lines with nothing to say.
@@ -162,7 +162,7 @@ session started from a terminal with Full Disk Access.
      одной сети», «Не найдено»).
 7. **Hand off to `maps-lists:run`.** Invoke the `maps-lists:run` skill with the plan path, plus
    `--apply` for a direct add, and `--yes`, `--account <email>` and `--lang <tag>` if they were given. It runs on a smaller model and does the
-   rest: the Apply / Dry run question, Chrome checks, the run and the report.
+   rest: the Save to Maps question, Chrome checks, the run and the report.
 
 ## Direct add
 
@@ -179,7 +179,7 @@ else's picks and go through the review page.
   `Name · address`, plus **All branches** for a chain. Never pick one yourself. Nothing found:
   say so and ask for a street or neighbourhood.
 - Write `plan.json` and a short summary as usual; then hand off with `--apply`, so the place is
-  saved straight away with no Apply / Dry run question. Before that, say in one line what will be
+  saved straight away with no Save question. Before that, say in one line what will be
   saved: `📍 Mr. Holmes Bakehouse · 1042 Larkin St → zz-test`.
 
 ## New list vs. update
@@ -199,8 +199,8 @@ states two limits:
   either.
 - Ambiguous places become **unresolved**. Never guess.
 - Don't write the `.places.md` yourself; the review page writes it from the user's choices.
-- Never run `maps-lists dry` / `maps-lists apply` from this skill. That's `maps-lists:run`'s job, and it
-  always asks Apply / Dry run first. Use a throwaway list (e.g. `zz-executor-test`) when testing writes.
+- Never run `maps-lists apply` from this skill. That's `maps-lists:run`'s job, and it
+  asks before saving unless it's a direct add. Use a throwaway list (e.g. `zz-executor-test`) when testing writes.
 - Single-quote Maps URLs in zsh (`!` triggers history expansion in double quotes).
 - If the user has several Google accounts in Chrome, suggest `--account <their email>` (or
   `GMAPS_ACCOUNT`). The run then stops before writing anything if Chrome is on the wrong account.
