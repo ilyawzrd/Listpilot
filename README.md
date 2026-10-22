@@ -129,9 +129,10 @@ a week if you closed a session midway.
 - Run it from the Terminal app or the Claude desktop app's Code tab, not from inside an editor like
   VS Code. Editors can't reach Chrome's settings.
 
-- The first research asks whether to read Reddit threads. Yes installs a small Reddit reader and
-  uses the Reddit login in your browser (macOS asks once to allow "Chrome Safe Storage"); no keeps
-  to Reddit search results, as before. Either way it only reads Reddit, never posts or votes.
+- The first research asks whether you have a Reddit account. You don't need one: without it,
+  Claude still sees Reddit through search results. With one (signed in at reddit.com in your
+  browser), it installs a small Reddit reader and reads whole threads (macOS asks once to allow
+  "Chrome Safe Storage"). Either way it only reads Reddit, never posts or votes.
 
 ## If something goes wrong
 

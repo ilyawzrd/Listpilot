@@ -81,13 +81,13 @@ Russian-speaking cities it searches in Russian first and adds Russian food media
 review snippets and Telegram as a primary source.
 
 **Reddit threads (optional).** Reddit blocks anonymous reads, so by default the research only sees
-Reddit through search snippets. The first research asks whether to read whole threads instead.
-Yes installs [rdt-cli](https://github.com/public-clis/rdt-cli) (pinned) with
+Reddit through search snippets. The first research asks whether you have a Reddit account; only
+with one can it read whole threads. Yes installs [rdt-cli](https://github.com/public-clis/rdt-cli) (pinned) with
 [uv](https://docs.astral.sh/uv/), which brings its own Python, about 50 MB once, and signs in with
 your Reddit login from your browser: macOS asks once whether `rdt` may use "Chrome Safe Storage".
 You need to be signed in to reddit.com in your browser. Claude reaches it only through
 `maps-lists reddit`, which can search and read and nothing else (rdt itself can also vote and
-comment). No means snippets, and it doesn't ask again (`maps-lists reddit on` brings the
+comment). No (or no account) means snippets, and it doesn't ask again (`maps-lists reddit on` brings the
 question back). The login is stored in `~/.config/rdt-cli/`; `rdt logout` removes it.
 
 ### Adding places you name

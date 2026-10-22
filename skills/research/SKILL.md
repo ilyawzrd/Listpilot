@@ -128,13 +128,16 @@ Every research pass covers these, per category:
 
    - **Reddit reader.** Run `maps-lists reddit status` with Bash first, without saying anything.
      It prints one JSON line. If `ready` or `off` is true, ask nothing about Reddit. Otherwise
-     add a question to the same card, header `Reddit`: **Read Reddit threads (Recommended)**:
-     whole threads with their upvotes instead of search snippets, for a better read of what locals
-     say; installs a small Reddit reader once (about 50 MB) and uses your Reddit login from your
-     browser / **Snippets only**: as before; won't ask again. (In Russian: **Читать треды Reddit
-     (рекомендуется)** / **Только сниппеты**, descriptions translated.) Leave out "installs…" when
-     `installed` is already true.
-     - **Read threads:** if `installed` is false, run `maps-lists reddit setup` (`timeout:
+     add a question to the same card, header `Reddit`, asked as whether the user has a Reddit
+     account, since reading threads needs one: «Do you have a Reddit account? With one, the
+     research can read whole Reddit threads.» (in Russian: «У вас есть аккаунт Reddit? С ним
+     исследование сможет читать треды Reddit целиком.»). Options, in this order, neither marked
+     Recommended: **No, skip Reddit threads**: Reddit only through search results, as before;
+     won't ask again / **Yes, read threads**: you're signed in at reddit.com in your browser;
+     installs a small Reddit reader once (about 50 MB) and reads whole threads with their upvotes
+     through your login. (In Russian: **Нет, без тредов Reddit** / **Да, читать треды**,
+     descriptions translated.) Leave out "installs…" when `installed` is already true.
+     - **Yes:** if `installed` is false, run `maps-lists reddit setup` (`timeout:
        600000`). Then say in one line: «macOS will ask whether **rdt** may use **Chrome Safe
        Storage**: type your Mac password and click **Always Allow**» (in Russian: «macOS спросит,
        можно ли **rdt** использовать **Chrome Safe Storage**: введите пароль от Mac и нажмите
@@ -142,7 +145,7 @@ Every research pass covers these, per category:
        line has `loggedIn`. If it's false, the browser isn't signed in to Reddit: say in one line
        that signing in at reddit.com in Chrome and starting the next research again turns threads
        on, and use snippets this time. A failed `setup` → one line, snippets this time.
-     - **Snippets only:** run `maps-lists reddit off`.
+     - **No:** run `maps-lists reddit off`. Never suggest Reddit again unless the user asks.
 
      Do this before anything else in step 0's outcome, so a model switch doesn't lose it.
 
