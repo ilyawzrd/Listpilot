@@ -306,4 +306,5 @@ on the next start or `/reload-plugins`. Others run `/plugin marketplace update m
 ```bash
 npm run typecheck
 npm test          # list-row parsing, title matching, plan schema, place lookup, review page + server, cleanup, lists, Reddit wrapper
+npm run test:hooks   # the Clawd hooks module (hooks/buddy.tsx), through `claude plugin test`
 ```

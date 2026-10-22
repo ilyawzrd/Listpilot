@@ -115,6 +115,8 @@ a week if you closed a session midway.
 
 ## Good to know
 
+- While it works, Clawd walks above the prompt with a map, and the spinner line says what's
+  happening (researching, waiting for you on the review page, saving 4/12…).
 - It never deletes places or lists, and never changes who a list is shared with. If a wrong place
   gets saved, remove it in Maps yourself.
 - If a place already has a note, the new note is added after it, not written over it. A short note

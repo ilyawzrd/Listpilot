@@ -1,6 +1,6 @@
 {
   "name": "maps-lists",
-  "version": "0.3.19",
+  "version": "0.3.20",
   "description": "Builds Google Maps saved lists, with notes, from city research or a .md file of places. Unofficial; drives your own Chrome.",
   "author": {
     "name": "Ilia"
@@ -13,5 +13,6 @@
     "travel",
     "restaurants",
     "research"
-  ]
+  ],
+  "types": "./types/index.d.ts"
 }
