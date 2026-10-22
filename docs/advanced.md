@@ -174,7 +174,7 @@ Chrome's `DevToolsActivePort` file (also for Chrome Beta/Canary, Brave, Edge and
   front, run it again, and click **Allow**.
 
 **A separate Chrome window.** No Full Disk Access needed: ask Claude to "use a separate Chrome
-window", or pick it when it's offered. It starts a dedicated Chrome profile on `127.0.0.1:9222`
+window", or pick it when it's offered. It starts a dedicated Chrome profile on `127.0.0.1:9333`
 (`maps-lists chrome`, profile in `~/.gmaps-automation-profile`); sign into Google there once and the
 profile remembers it. The choice is remembered in `~/.maps-lists/config.json`
 (`maps-lists check-chrome --set main` switches back), and later runs open the window when it isn't
@@ -219,7 +219,7 @@ npm run resolve -- --query "Langer's Deli Los Angeles"   # candidates with name,
 npm run resolve -- queries.txt [--lang ca]               # one query per line, names in any language; full results in artifacts/resolve.json
 npm run clean -- --dry-run               # what cleanup would remove; --older-than 7 for the weekly sweep
 npm run check-plan -- plan.json          # validate a plan
-npm run chrome                           # dedicated Chrome profile on 127.0.0.1:9222 (then leave out --cdp auto)
+npm run chrome                           # dedicated Chrome profile on 127.0.0.1:9333 (then leave out --cdp auto)
 bin/maps-lists check-chrome [--set main|separate]   # JSON: mode, ready / debugging-off / no-access / not-running, host app
 ```
 
@@ -227,7 +227,7 @@ bin/maps-lists check-chrome [--set main|separate]   # JSON: mode, ready / debugg
 > `data=!4m6!3m5…` into commands from your shell history.
 
 Executor flags (`dry`, `apply`):
-- `--cdp <url>`: default `http://127.0.0.1:9222`. `auto` reads `DevToolsActivePort` (main Chrome).
+- `--cdp <url>`: default `http://127.0.0.1:9333` (the dedicated profile; the main Chrome toggle uses 9222, reached through `auto`). `auto` reads `DevToolsActivePort` (main Chrome).
 - `--state <file>`: default `.gmaps-state.json`.
 - `--account <email>`: stop if Chrome is signed in to a different account.
 - `--lang auto|en|es|ru`: Maps UI language. `auto` (default) opens Maps without `hl` and reads

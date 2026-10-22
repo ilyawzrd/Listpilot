@@ -47,7 +47,7 @@ async function wsFromActivePortFile(): Promise<string> {
 /**
  * --cdp auto            → read the WebSocket endpoint from DevToolsActivePort (chrome://inspect toggle).
  *                         Doesn't touch the HTTP endpoints, which only 404 and can add extra Allow prompts.
- * --cdp http://…:9222   → normal HTTP discovery (dedicated profile launched with --remote-debugging-port);
+ * --cdp http://…:9333   → normal HTTP discovery (dedicated profile launched with --remote-debugging-port);
  *                         falls back to the file if discovery isn't served
  * --cdp ws://…          → connect directly
  *

@@ -14,7 +14,8 @@ import { CANDIDATE_DIRS } from "./connect.js";
  *
  * Modes: "main" = the user's own Chrome via the chrome://inspect toggle (--cdp auto, needs Full Disk
  * Access for whatever macOS holds responsible); "separate" = the dedicated profile from
- * `maps-lists chrome` on 127.0.0.1:9222 (HTTP discovery, no Full Disk Access).
+ * `maps-lists chrome` on 127.0.0.1:9333 (HTTP discovery, no Full Disk Access; 9222 is the main
+ * Chrome toggle's port).
  */
 
 export type Mode = "main" | "separate";
@@ -77,7 +78,7 @@ export async function checkMain(dirs: string[]): Promise<Status> {
   return denied ? "no-access" : "debugging-off";
 }
 
-export async function checkSeparate(port = process.env.CDP_PORT ?? "9222"): Promise<Status> {
+export async function checkSeparate(port = process.env.CDP_PORT ?? "9333"): Promise<Status> {
   const res = await fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
   return res?.ok ? "ready" : "not-running";
 }

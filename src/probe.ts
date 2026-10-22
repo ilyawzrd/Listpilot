@@ -13,7 +13,7 @@ import { ARTIFACTS, detectLanguage, dismissConsent, pause, readList, screenshot,
 
 const args = process.argv.slice(2);
 const cdpIdx = args.indexOf("--cdp");
-const cdp = cdpIdx >= 0 ? args.splice(cdpIdx, 2)[1]! : "http://127.0.0.1:9222";
+const cdp = cdpIdx >= 0 ? args.splice(cdpIdx, 2)[1]! : "http://127.0.0.1:9333";
 const langIdx = args.indexOf("--lang");
 const lang = (langIdx >= 0 ? args.splice(langIdx, 2)[1]! : "auto") as LangOption;
 const [placeUrl, listName] = args;

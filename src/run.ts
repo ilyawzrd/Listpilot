@@ -12,7 +12,7 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     "dry-run": { type: "boolean", default: false },
-    cdp: { type: "string", default: "http://127.0.0.1:9222" },
+    cdp: { type: "string", default: "http://127.0.0.1:9333" }, // the dedicated profile (npm run chrome)
     // How Maps displays a list. Calibrate once with `npm run probe` and flip if verify reports order drift.
     "list-order": { type: "string", default: "newest-first" },
     state: { type: "string", default: ".gmaps-state.json" },

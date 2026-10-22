@@ -99,8 +99,10 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
 
    **Use a separate Chrome window** (when chosen): run `maps-lists check-chrome --set separate`
    (remembered from now on), then `maps-lists chrome` with Bash, `run_in_background: true`. Say a
-   new Chrome window opened just for maps-lists: the first time, sign into Google there (the same
-   account as usual; lists show up everywhere), then say continue. Run `check-chrome` again.
+   new Chrome window opened just for maps-lists and it isn't signed in yet: sign into the Google
+   account the list should go to (the first time it opens on Google's sign-in page; otherwise click
+   **Sign in** at the top right of Google Maps in that window). This is needed once; the window
+   remembers it. Lists show up everywhere as usual. Then say continue. Run `check-chrome` again.
 
    **`mode: "separate"`** (remembered from an earlier run):
    - **`ready`:** step 3 without `--cdp auto`.
@@ -118,6 +120,10 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
    Expect about 5–10 s per place.
    - **`EPERM` on `DevToolsActivePort`:** run `maps-lists check-chrome` and follow its
      `no-access` branch above.
+   - **`NOT_SIGNED_IN`:** nothing was written. The Chrome window it used isn't signed into Google:
+     in the separate window, say to click **Sign in** at the top right of Google Maps there and
+     sign into the account the list should go to; in main mode, to sign into Chrome's Google Maps.
+     When they say continue, run the same command again.
 4. **Report** from `artifacts/report.json`. It's an array with one entry per list. Use this
    template per list, leaving out empty lines:
    ```
