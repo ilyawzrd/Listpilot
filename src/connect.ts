@@ -54,10 +54,13 @@ async function wsFromActivePortFile(): Promise<string> {
  * In main-Chrome mode, Chrome asks you to Allow each connection: click Allow in the browser.
  */
 export async function connect(cdp: string): Promise<Browser> {
+  connectedToOwnWindow = false;
   if (cdp === "auto") return chromium.connectOverCDP(await wsFromActivePortFile());
   if (cdp.startsWith("ws")) return chromium.connectOverCDP(cdp);
   try {
-    return await chromium.connectOverCDP(cdp, { timeout: 10_000 });
+    const browser = await chromium.connectOverCDP(cdp, { timeout: 10_000 });
+    connectedToOwnWindow = true;
+    return browser;
   } catch (e) {
     const ws = await wsFromActivePortFile().catch(() => null);
     if (!ws) throw e;
@@ -65,3 +68,10 @@ export async function connect(cdp: string): Promise<Browser> {
     return chromium.connectOverCDP(ws);
   }
 }
+
+/**
+ * True after connect() reached the dedicated profile over HTTP discovery (`maps-lists chrome`):
+ * a window that exists only for maps-lists, so its tabs are ours to use. False for the main Chrome
+ * (the toggle's DevToolsActivePort), where the user's own tabs must never be touched.
+ */
+export let connectedToOwnWindow = false;

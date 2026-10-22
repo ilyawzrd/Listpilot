@@ -122,7 +122,8 @@ npm test                                                                 # pure 
   don't paste them anywhere.
 - One tab doing ~70 Maps place loads gets its renderer killed ("Page crashed"), and reloads don't
   free the memory. `run.ts` opens a fresh tab every 25 places, before the list-view pass, and
-  right after a crash (the crashed place gets one more try).
+  right after a crash (the crashed place gets one more try). In the dedicated profile (`connectedToOwnWindow`, HTTP discovery) the first tab is
+  reused and left open on the finished list; in the main Chrome every tab is new and closed at the end.
 - Never write named helper functions inside `page.evaluate`: tsx wraps them in `__name()`, which
   doesn't exist in the page. (The executor no longer uses `evaluate` for rows.)
 - Resolving places without Chrome: Google's `/maps/search/?api=1&query=…` page links a

@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { parseArgs } from "node:util";
 import type { BrowserContext, Page } from "playwright-core";
-import { connect } from "./connect.js";
+import { connect, connectedToOwnWindow } from "./connect.js";
 import { PlanSchema, type ListPlan, type Place } from "./plan.js";
 import {
   ARTIFACTS, createListWithPlace, detectLanguage, ensureSignedIn, type LangOption, hardReload, isInList, listExists, norm, openList,
@@ -69,9 +69,14 @@ let tab: Page;
 let tabCrashed = false;
 let placesOnTab = 0;
 
-async function freshTab(): Promise<Page> {
+/**
+ * In the main Chrome every tab is new and closed afterwards, so the user's tabs are never touched.
+ * In maps-lists' own window the first tab is reused (`reuse`), so there's no second tab next to
+ * the one Chrome opened on launch.
+ */
+async function freshTab(reuse = false): Promise<Page> {
   const old = tab;
-  tab = await context.newPage();
+  tab = (reuse && connectedToOwnWindow && context.pages()[0]) || (await context.newPage());
   tab.setDefaultTimeout(15000); // any step without its own timeout fails in 15s instead of hanging
   tab.on("crash", () => { tabCrashed = true; });
   tabCrashed = false;
@@ -294,7 +299,7 @@ async function main() {
   const ctx = browser.contexts()[0];
   if (!ctx) throw new Error("No browser context — is Chrome running with --remote-debugging-port?");
   context = ctx;
-  await freshTab();
+  await freshTab(true);
 
   const reports: ListReport[] = [];
   let hl = "en";
@@ -314,7 +319,8 @@ async function main() {
     await fs.writeFile(values.state!, JSON.stringify(state, null, 2));
     await fs.mkdir(ARTIFACTS, { recursive: true });
     await fs.writeFile(`${ARTIFACTS}/report.json`, JSON.stringify(reports.map((r) => ({ ...r, mapsLanguage: hl })), null, 2));
-    await tab.close().catch(() => {});
+    // In its own window, leave the tab on the finished list (verify ends there) for the user to see.
+    if (!connectedToOwnWindow) await tab.close().catch(() => {});
     await browser.close(); // disconnects only; your Chrome keeps running
   }
 

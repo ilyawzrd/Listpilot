@@ -117,8 +117,9 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
    - Apply: `maps-lists apply plan.json` (+ `--cdp auto` in main mode)
 
    Use the plan path given in place of `plan.json`, and add `--account <email>` if it was given.
-   Expect about 5–10 s per place. Say once that Chrome opens a tab of its own for this, to leave it
-   alone, and that it closes when done (the executor never touches tabs already open).
+   Expect about 5–10 s per place. In main mode, say once that Chrome opens a tab of its own for this,
+   to leave it alone, and that it closes when done (the executor never touches the user's tabs). In
+   the separate window it works in the tab that's already open and leaves it on the finished list.
    - **`EPERM` on `DevToolsActivePort`:** run `maps-lists check-chrome` and follow its
      `no-access` branch above.
    - **`NOT_SIGNED_IN`:** nothing was written. The Chrome window it used isn't signed into Google:
