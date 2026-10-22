@@ -174,9 +174,13 @@ else's picks and go through the review page.
 - Skip steps 0 and 3. Step 1 takes the places from the message; a note only when the user gave one
   ("…with the note: get the morning bun"), in their words. Ask for the list name if there's none.
 - Resolve as in step 4, using the city from the message, the list name or the list's other places.
-  When a name matches several places (two places with that name, or a chain the user didn't pin to
-  one branch), ask with `AskUserQuestion` (header `Which one?`), one option per candidate as
-  `Name · address`, plus **All branches** for a chain. Never pick one yourself. Nothing found:
+  When a name matches several places and the user didn't pin one (a street, a neighbourhood),
+  ask with `AskUserQuestion` (header `Which one?`). **Always** include **All of them** as the first
+  option, labelled with the count (`All 4 locations`, in Russian `Все 4 места`), whether or not it
+  looks like a chain; then one option per candidate as `Name · address`. The question takes at
+  most 4 options, so with more than 3 candidates show the 3 likeliest and say in the question
+  that another address can be typed under Other. "All" adds every candidate as its own entry with
+  the same note (see "Chains" in step 4). Never pick one yourself. Nothing found:
   say so and ask for a street or neighbourhood.
 - Write `plan.json` and a short summary as usual; then hand off with `--apply`, so the place is
   saved straight away with no Save question. Before that, say in one line what will be

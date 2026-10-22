@@ -85,8 +85,8 @@ review snippets and Telegram as a primary source.
 
 "Add Tartine and Morreig to zz-test" is a direct add: no review page and no Save question,
 since you've already decided. Claude says in one line what it matched (`📍 Name · address → list`)
-and saves. A name that matches several places, or a chain, gets a quick "which one?" question
-(with "All branches" for a chain); a note only goes in if you give one. Pasted lists, files and
+and saves. A name that matches several places, or a chain, gets a quick "which one?" question,
+always with "All of them" as an option; a note only goes in if you give one. Pasted lists, files and
 research still go through the review page.
 
 ### From a list you have
