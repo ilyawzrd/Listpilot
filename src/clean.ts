@@ -8,7 +8,7 @@ import { MAX_LIST_NAME } from "./plan.js";
 /**
  * Removes what runs leave behind and keeps only the final places files lists were populated from.
  *
- *   npm run clean               # listpilot-run also runs it after a verified apply
+ *   npm run clean               # maps-lists:run also runs it after a verified apply
  *   npm run clean -- --dry-run
  *   npm run clean -- --older-than 7   # start.sh: only leftovers untouched for 7 days, state file left alone
  *

@@ -1,17 +1,27 @@
 ---
-name: listpilot-research
-description: Use when the user wants recommendations for places to eat, drink, get coffee, bakeries, etc. in a city researched (tourist traps and viral TikTok places filtered out, Reddit and Telegram checked; in English or Russian) and put on a Google Maps saved list. Writes a structured research file, opens a review page (checkboxes, editable notes), then hands the result to listpilot-apply.
+name: research
+description: Use when the user wants recommendations for places to eat, drink, get coffee, bakeries, etc. in a city researched (tourist traps and viral TikTok places filtered out, Reddit and Telegram checked; in English or Russian) and put on a Google Maps saved list. Writes a structured research file, opens a review page (checkboxes, editable notes), then hands the result to maps-lists:import.
 argument-hint: <what> in <where> ["List name"] [--quick] [--yes] [--lang ru]
 effort: medium
 ---
 
 # Research → places file → Google Maps list
 
-The optional first step in front of `listpilot-apply`. By default the research runs through the
+The optional first step in front of `maps-lists:import`. By default the research runs through the
 `deep-research` skill (parallel research agents, like desktop Research mode). You then filter the
 result into `research/<slug>.json` and open the review page, where the user ticks places and edits
-notes. The page writes the places file, which you hand to `listpilot-apply`. Apply resolves it and
-passes it to `listpilot-run` for the Chrome part. Nothing is written to Maps until the user picks Apply there.
+notes. The page writes the places file, which you hand to `maps-lists:import`. Apply resolves it and
+passes it to `maps-lists:run` for the Chrome part. Nothing is written to Maps until the user picks Apply there.
+
+## Data folder
+
+`maps-lists` (on your Bash PATH while the plugin is enabled) runs the executor with
+`~/.maps-lists/` as its working folder (`MAPS_LISTS_HOME` overrides it; `maps-lists home` prints
+it). Every relative data path in this skill (`research/`, `artifacts/`, `plan.json`,
+`.gmaps-state.json`) lives there, and `maps-lists` resolves them there itself. When you Read or
+Write one of those files with your own tools, use the full path (`~/.maps-lists/plan.json`).
+Pass data files by these relative names. Pass anything else (the user's `.md`, a queries file in
+your scratchpad) as an absolute path.
 
 ## Input
 
@@ -20,10 +30,10 @@ passes it to `listpilot-run` for the Chrome part. Nothing is written to Maps unt
 - **What:** one or more categories (eat, drink, coffee, bakeries, natural wine, brunch…).
 - **Where:** a city or neighbourhood. If it's missing, ask with `AskUserQuestion`. Ask nothing else.
 - **Optional list name** (quoted): otherwise make one up, short and at most 40 characters
-  (`MAX_LIST_NAME` in `src/plan.ts`), e.g. "Lisbon Bakeries" or "Tokyo Eat & Drink".
+  (`MAX_LIST_NAME` in `${CLAUDE_PLUGIN_ROOT}/src/plan.ts`), e.g. "Lisbon Bakeries" or "Tokyo Eat & Drink".
 - **Optional `--quick`** (or "quick", "fast" in the request): skip deep research and do one
   research pass yourself (step 1b). Faster and cheaper, but it finds fewer places.
-- **Optional `--yes`:** passed through to `listpilot-apply`.
+- **Optional `--yes`:** passed through to `maps-lists:import`.
 - **Optional `--lang ru`:** the user works in Russian (see "Language" below). Without it, use
   the language the user writes in (Russian request → Russian; anything else → English).
 - Anything else (budget, vegetarian, near a hotel, open late) is a constraint for the research.
@@ -37,7 +47,7 @@ the text of each `reason`. These stay as they are, because code and the next ski
 `viral:`, `closed:`, `thin evidence:`, place names as the sources write them, and the file slug
 (ASCII, transliterated: `research/moskva-pekarni-20261019.json`). Brief `deep-research` in English
 or Russian, but ask for the report's notes and details in Russian. Pass `--lang ru` to
-`listpilot-apply`. The language is the user's, not the city's: a Russian speaker's Lisbon list gets
+`maps-lists:import`. The language is the user's, not the city's: a Russian speaker's Lisbon list gets
 Russian notes; the sources follow the city (below).
 
 ## Sources
@@ -89,8 +99,9 @@ Every research pass covers these, per category:
      separate list of places to skip, with reasons (trap, viral, closed), and a sources list.
    - The criteria from step 2 below, so its report already flags what step 2 will drop.
 
-   Let it ask its own follow-up questions and finish. It writes the report to `reports/<title>.md`,
-   with notes in `research_notes/<title>/`, both gitignored. Read the report, then continue
+   Tell it to write the report to `~/.maps-lists/reports/<title>.md` and its notes to
+   `~/.maps-lists/research_notes/<title>/`, so they stay out of the user's folder and
+   `maps-lists clean` removes them later. Let it ask its own follow-up questions and finish. Read the report, then continue
    with step 2. **If `deep-research` isn't in the skill list** (or there's no Agent tool to start
    agents with), say so in one line and do step 1b instead.
 
@@ -109,10 +120,10 @@ Every research pass covers these, per category:
      Reddit, local press, a local Telegram author who isn't paid for the post). One listicle alone
      is not enough.
    - Aim for about 10–25 places per category. A tight list beats an exhaustive one.
-3. **Write the research file** `research/<slug>-<YYYYMMDD>.json` (gitignored), with the slug from
+3. **Write the research file** `research/<slug>-<YYYYMMDD>.json` in the data folder, with the slug from
    city + category, e.g. `research/lisbon-bakeries-20261018.json` (always ASCII). Schema:
-   `ResearchSchema` in `src/review.ts`; samples: `examples/research.example.json`,
-   `examples/research.example.ru.json`.
+   `ResearchSchema` in `${CLAUDE_PLUGIN_ROOT}/src/review.ts`; samples: `${CLAUDE_PLUGIN_ROOT}/examples/research.example.json`,
+   `${CLAUDE_PLUGIN_ROOT}/examples/research.example.ru.json`.
    - `lang`: `"ru"` with `--lang ru`, otherwise leave it out (defaults to `"en"`). It sets the
      review page's language.
    - `list`: the list name (40 characters max).
@@ -121,7 +132,7 @@ Every research pass covers these, per category:
      - `name`.
      - `area`: the neighbourhood or street that pins the place down, or `all branches` for a chain
        when no source singles out one branch.
-     - `note`: the text that goes to Maps. Use the **note style** of `listpilot-apply`: plain
+     - `note`: the text that goes to Maps. Use the **note style** of `maps-lists:import`: plain
        text, no name, city or address, only concrete info (what to order, when to go, book ahead,
        closing day), one or two sentences, no sources or ranks.
      - `details`: what the user reads on the review page. Why it's in, who recommends it, what to
@@ -133,22 +144,22 @@ Every research pass covers these, per category:
    - Say once, in a `details` or a `reason`, when Reddit or Telegram evidence comes only from
      search snippets.
 
-   Validate with `npm run -s review -- --check <json>` and fix any reported field.
+   Validate with `maps-lists review --check <json>` and fix any reported field.
 4. **Review.** Tell the user in 2–3 lines how many places per category, how many were filtered out
    and why, and that a page is opening in their browser. Then run
-   `npm run review -- <json>` with Bash, `timeout: 600000`. It serves the page on 127.0.0.1 and
+   `maps-lists review <json>` with Bash, `timeout: 600000`. It serves the page on 127.0.0.1 and
    waits. The user unticks places, edits notes, can tick filtered-out ones back in, and presses
    **Continue**. Act on the exit code:
    - `0`: the page wrote `research/<slug>-<YYYYMMDD>.places.md` and printed a summary
      ("Kept 11 of 13 …"). Repeat the summary in one line and go to step 5.
    - `3`: the page is still open (a command can't run longer than 10 minutes). Run
-     `npm run review -- <json> --resume` straight away, without saying anything, as often as
+     `maps-lists review <json> --resume` straight away, without saying anything, as often as
      needed. The page keeps its state and reconnects.
    - `2` (cancelled in the page) or `4` (tab closed): ask with `AskUserQuestion` (header `Review`):
      **Reopen the page** (run step 4 again without `--resume`) / **Stop** (the JSON stays;
-     `npm run review -- <json>` reopens it later).
+     `maps-lists review <json>` reopens it later).
    - `1`: the JSON is invalid. Fix it and run again.
-5. **Hand off.** Invoke the `listpilot-apply` skill with
+5. **Hand off.** Invoke the `maps-lists:import` skill with
    `research/<slug>-<YYYYMMDD>.places.md "<List name>"`, plus `--yes` and `--lang ru` if they
    were given. Apply resolves
    every place, previews it, and asks Apply / Dry run before anything is written.
@@ -158,5 +169,5 @@ Every research pass covers these, per category:
 - Never invent a place. Every entry in the JSON has a source. After deep research, take places
   only from its report, never from memory.
 - Don't write the `.places.md` yourself; the review page writes it from the user's choices.
-- Don't resolve places or touch Chrome here. That's `listpilot-apply` and `listpilot-run`.
-- All of `listpilot-apply`'s rules still apply (never delete, never guess a match, 40-char list names).
+- Don't resolve places or touch Chrome here. That's `maps-lists:import` and `maps-lists:run`.
+- All of `maps-lists:import`'s rules still apply (never delete, never guess a match, 40-char list names).

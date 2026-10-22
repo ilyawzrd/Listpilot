@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # One command from question to Google Maps list. Asks the language (English or Russian) and what you
 # want (research, or an .md file you already have), checks the setup, then opens Claude Code on the
-# matching skill.
+# matching skill. Loads this repo as the maps-lists plugin (--plugin-dir), so data goes to
+# ~/.maps-lists like an installed plugin's.
 #
 #   ./start.sh        (or: npm start)
 set -euo pipefail
@@ -27,9 +28,9 @@ if [[ ! -d node_modules ]]; then
   echo "Installing dependencies (first run)…"
   npm install --silent || fail "npm install failed." "Run 'npm install' here and fix the error it shows."
 fi
-# Sessions closed midway skip listpilot-run's cleanup. Drop leftovers untouched for a week; newer ones
+# Sessions closed midway skip maps-lists:run's cleanup. Drop leftovers untouched for a week; newer ones
 # (unreviewed research, plan.retry.json, failure snapshots) stay so that work can be resumed.
-npm run -s clean -- --older-than 7 2>/dev/null || true
+bin/maps-lists clean --older-than 7 >/dev/null 2>&1 || true
 [[ "$(uname)" == Darwin ]] || warn "Made for macOS. Elsewhere, open the review page link yourself; Chrome setup differs."
 [[ "$(uname)" != Darwin || -d "/Applications/Google Chrome.app" ]] ||
   warn "Google Chrome not found in /Applications. The Maps step drives Chrome, so install it before then."
@@ -37,7 +38,7 @@ npm run -s clean -- --older-than 7 2>/dev/null || true
 # ── language ─────────────────────────────────────────────────────────────────
 cat <<EOF
 
-${bold}listpilot${off}
+${bold}maps-lists${off}
   1) English
   2) Русский
 
@@ -129,7 +130,7 @@ next_steps() { # next_steps <research|md>
 if [[ $ui == ru ]]; then
   cat <<EOF
 
-${bold}listpilot${off}: места в список Google Карт, с заметками.
+${bold}maps-lists${off}: места в список Google Карт, с заметками.
 
   1) Найти места для меня       ${dim}(Claude ищет в местной прессе, гидах, Telegram и Reddit)${off}
   2) Взять мой .md-файл         ${dim}(отчёт, ответ из чата, список)${off}
@@ -138,7 +139,7 @@ EOF
 else
   cat <<EOF
 
-${bold}listpilot${off}: put places on a Google Maps list, with notes.
+${bold}maps-lists${off}: put places on a Google Maps list, with notes.
 
   1) Research places for me   ${dim}(Claude searches local press, guides, Telegram and Reddit)${off}
   2) Use an .md file I already have   ${dim}(a research report, a chat answer, a list)${off}
@@ -185,7 +186,7 @@ EOF
   done
   ask_list "$(t "2/2 List name (Enter = the file's title)" "2/2 Название списка (Enter — заголовок файла)")" "" optional
   next_steps md
-  exec claude --model sonnet --effort medium "/listpilot-apply \"${md_path}\"${list:+ \"$list\"}${lang_arg}"
+  exec claude --plugin-dir "$PWD" --model sonnet --effort medium "/maps-lists:import \"${md_path}\"${list:+ \"$list\"}${lang_arg}"
 fi
 
 # ── 1) research ──────────────────────────────────────────────────────────────
@@ -254,5 +255,5 @@ read -r -p "$(t "5/5 Model: opus (best research) or sonnet (cheaper)?" \
 
 next_steps research
 # One argv element: the shell doesn't re-parse expanded user input, so quotes or $ in answers are inert.
-exec claude --model "$model" --effort medium \
-  "/listpilot-research ${what} $(t in в) ${where}. \"${list}\"${quick}${lang_arg}"
+exec claude --plugin-dir "$PWD" --model "$model" --effort medium \
+  "/maps-lists:research ${what} $(t in в) ${where}. \"${list}\"${quick}${lang_arg}"

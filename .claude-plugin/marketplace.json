@@ -1,0 +1,12 @@
+{
+  "name": "maps-lists",
+  "owner": { "name": "Ilia" },
+  "description": "Google Maps saved lists from research or a .md file.",
+  "plugins": [
+    {
+      "name": "maps-lists",
+      "source": ".",
+      "description": "Builds Google Maps saved lists, with notes, from city research or a .md file of places."
+    }
+  ]
+}

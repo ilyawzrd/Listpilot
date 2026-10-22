@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Plugin entry point for the executor. Runs src/ from the plugin with the data folder as cwd, so
+# research/, artifacts/, plan.json and .gmaps-state.json always land in one place, wherever Claude
+# was started.
+#
+#   maps-lists dry|apply|resolve|review|clean|probe|check-plan|chrome [args…]
+#   MAPS_LISTS_HOME=/some/dir maps-lists …   # default ~/.maps-lists
+set -euo pipefail
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
+HOME_DIR="${MAPS_LISTS_HOME:-$HOME/.maps-lists}"
+
+command -v node >/dev/null || { echo "Node.js isn't installed. Install Node 18 or newer from https://nodejs.org." >&2; exit 1; }
+(( $(node -p 'process.versions.node.split(".")[0]') >= 18 )) ||
+  { echo "Node $(node -v) is too old. Install Node 18 or newer from https://nodejs.org." >&2; exit 1; }
+if [[ ! -x "$ROOT/node_modules/.bin/tsx" ]]; then
+  echo "Installing dependencies (first run)…" >&2
+  npm ci --omit=dev --silent --prefix "$ROOT" >&2 || { echo "npm ci failed in $ROOT" >&2; exit 1; }
+fi
+
+# A relative path means the data folder first (plan.json, research/…, artifacts/…), so a stray
+# plan.json where Claude was started can't shadow it. Data names (plan*.json, research/, artifacts/)
+# never leave it; any other path missing there falls back to the caller's folder (a .md file).
+args=()
+for a in "$@"; do
+  case "$a" in -*|/*|http*|ws:*|plan*.json|research/*|artifacts/*) args+=("$a"); continue ;; esac
+  if [[ ! -e "$HOME_DIR/$a" && -e "$a" ]]; then a="$PWD/$a"; fi
+  args+=("$a")
+done
+set -- ${args[@]+"${args[@]}"}
+
+mkdir -p "$HOME_DIR"
+cd "$HOME_DIR"
+tsx="$ROOT/node_modules/.bin/tsx"
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  dry)        exec "$tsx" "$ROOT/src/run.ts" --dry-run "$@" ;;
+  apply)      exec "$tsx" "$ROOT/src/run.ts" "$@" ;;
+  resolve|review|clean|probe) exec "$tsx" "$ROOT/src/$cmd.ts" "$@" ;;
+  check-plan) exec "$tsx" "$ROOT/src/plan.ts" --check "${1:-plan.json}" ;;
+  chrome)     exec bash "$ROOT/scripts/launch-chrome.sh" ;;
+  home)       echo "$HOME_DIR" ;;
+  *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|check-plan|chrome|home [args…]" >&2; exit 64 ;;
+esac

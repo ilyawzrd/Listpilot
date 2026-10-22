@@ -4,6 +4,9 @@
       "Bash(npm run resolve:*)",
       "Bash(npm run dry:*)",
       "Bash(npm run apply:*)",
+      "Bash(maps-lists resolve:*)",
+      "Bash(maps-lists dry:*)",
+      "Bash(maps-lists apply:*)",
       "Bash(npm test)",
       "Bash(npm run typecheck)"
     ]

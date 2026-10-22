@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 import { z } from "zod";
 
 /**
@@ -42,3 +44,20 @@ export const PlanSchema = z.object({
 export type Place = z.infer<typeof PlaceSchema>;
 export type ListPlan = z.infer<typeof ListSchema>;
 export type Plan = z.infer<typeof PlanSchema>;
+
+/** `maps-lists check-plan plan.json`: validates a plan file, prints every problem, exit 1 if invalid. */
+async function main() {
+  const file = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "plan.json";
+  const text = await fs.readFile(file, "utf8").catch(() => {
+    console.error(`No plan at ${file} (relative to ${process.cwd()})`);
+    process.exit(1);
+  });
+  const parsed = PlanSchema.safeParse(JSON.parse(text));
+  if (!parsed.success) {
+    for (const i of parsed.error.issues) console.error(`${i.path.join(".") || "(root)"}: ${i.message}`);
+    process.exit(1);
+  }
+  console.log(`ok: ${parsed.data.lists.map((l) => `${l.name} (${l.places.length})`).join(", ")}`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

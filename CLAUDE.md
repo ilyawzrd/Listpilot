@@ -1,4 +1,4 @@
-# listpilot
+# maps-lists
 
 Deterministic executor for Google Maps saved lists. It takes a `plan.json` (lists → places with
 notes) and applies it through Playwright attached to Chrome over CDP. It creates the list, saves
@@ -6,15 +6,20 @@ places and writes notes, then hard-reloads and diffs the result against the plan
 
 Division of labour: the model does the judgment work (parse a source, ask for list names, resolve
 each place to a `/maps/place/` URL, flag ambiguous ones). This executor only clicks, and it does so
-the same way every time. Three project skills form the chain, split by how much judgment each
-needs: `listpilot-research` (optional: deep research by default, web + Reddit snippets →
+the same way every time. It ships as a Claude Code plugin named `maps-lists` (this repo is also its
+marketplace). Three plugin skills form the chain, split by how much judgment each
+needs: `maps-lists:research` (optional: deep research by default, web + Reddit snippets →
 `research/<slug>.json` → review page → a places file; session model, Opus or Sonnet via `start.sh`),
-`listpilot-apply` (`model: sonnet`: document → resolved `plan.json`), and `listpilot-run`
-(`model: haiku`: runs `dry`/`apply` and reports). All three run at `effort: medium`. Each hands off to the next in the same turn, passing `--lang ru` along (conversation language; never the executor's Maps `--lang`). A skill's `model:` lasts
+`maps-lists:import` (`model: sonnet`: document → resolved `plan.json`), and `maps-lists:run`
+(`model: haiku`: runs `dry`/`apply` and reports), with `maps-lists:start` in front (asks research or .md file).
+All run at `effort: medium`. Each hands off to the next in the same turn, passing `--lang ru` along (conversation language; never the executor's Maps `--lang`). A skill's `model:` lasts
 for the rest of that turn only, so a new user prompt goes back to the session model.
 
 ## Layout
 
+- `.claude-plugin/plugin.json` + `marketplace.json` (`source: "."`). `version` gates updates: users get nothing until it's bumped
+- `bin/maps-lists`: what the skills run (on Claude's Bash PATH while the plugin is enabled). Runs `src/` via the plugin's tsx with cwd `~/.maps-lists` (`MAPS_LISTS_HOME`), so all data paths below are relative to that folder in plugin use. Makes relative file args absolute first; `npm ci --omit=dev` if `node_modules` is missing. Subcommands: `dry apply resolve review clean probe check-plan chrome home`
+- `skills/{start,research,import,run}/SKILL.md`: the plugin skills. Reference repo files as `${CLAUDE_PLUGIN_ROOT}/src/…` (substituted in skill bodies; **not** an env var in Bash). Conversation language is inferred from the user's message; `--lang ru` still overrides
 - `src/plan.ts`: zod schema for `plan.json` (`version: 1`, `lists[].{name, emoji?, ordered, places[].{name, url?|query?, note?}}`)
 - `src/selectors.ts`: **every** Maps UI hook. Roles, aria-labels and names only, never CSS classes. Per-language name tables (`TEXT.en`, `TEXT.es`, `TEXT.ru`), picked by `setLocale`
 - `src/maps.ts`: page operations: openPlace, isInList, saveToList, createListWithPlace, openList, readList, writeNote, setListIcon, hardReload
@@ -22,13 +27,13 @@ for the rest of that turn only, so a new user prompt goes back to the session mo
 - `src/probe.ts`: read-only calibration that dumps ARIA snapshots (incl. the New-list form peek, `aria-2b-new-list-form.yaml`) and `rows.json` to `artifacts/`
 - `src/resolve.ts`: `npm run resolve [-- --lang ru]`. Chrome-free place lookup (see "Resolving places without Chrome"); prints candidates, writes `artifacts/resolve.json`
 - `src/review.ts`: `npm run review -- research/<slug>.json`. `ResearchSchema` (zod; samples `examples/research.example.json`, `.ru.json`; `lang: en|ru` picks the page's strings from `UI`) + a review page served on 127.0.0.1 with a random token: checkbox + editable note per place, details on click, filtered-out places collapsed and unticked. Continue writes `<slug>.places.md` and the choices back into the JSON. Exit 0 submitted · 1 invalid · 2 cancelled · 3 still waiting (`--wait`, re-run with `--resume`: same port/token, page reconnects) · 4 no heartbeat (`--idle`). `--check` validates only
-- `src/clean.ts`: `npm run clean [-- --dry-run]`. Removes `artifacts/*`, every untracked `plan*.json` (incl. `plan.retry.json`, dated backups, custom names), everything in `research/` except `*.places.md`, `reports/`, `research_notes/`. In `.gmaps-state.json` it drops only entries that can't match again (name > 40 chars, or `zz-*` test lists). Keeps git-tracked files and real list entries. `listpilot-run` calls it after a fully verified apply only; `start.sh` runs `--older-than 7` on launch (only items untouched for 7 days, state file untouched) for sessions closed midway
-- `start.sh`: `npm start`. Preflight (claude, node ≥18, node_modules, Chrome, `clean --older-than 7`), then language (English / Русский → `--lang ru` on the skill; forces a UTF-8 locale so bash 3.2 counts Cyrillic letters; brace vars next to `«»`, bash 3.2 reads `$list»` as one name), then mode: **research** (lists the 5 questions with examples; what incl. preferences / where / list name ≤40, `"` stripped / depth / model; soft check moves a place typed into What to Where) → `claude --model <opus|sonnet> --effort medium "/listpilot-research …"`, or **.md file** (path resolved against the caller's cwd, optional list name) → `claude --model sonnet --effort medium "/listpilot-apply …"`. User input travels as one argv element
+- `src/clean.ts`: `npm run clean [-- --dry-run]`. Removes `artifacts/*`, every untracked `plan*.json` (incl. `plan.retry.json`, dated backups, custom names), everything in `research/` except `*.places.md`, `reports/`, `research_notes/`. In `.gmaps-state.json` it drops only entries that can't match again (name > 40 chars, or `zz-*` test lists). Keeps git-tracked files and real list entries. `maps-lists:run` calls it after a fully verified apply only; `start.sh` runs `--older-than 7` on launch (only items untouched for 7 days, state file untouched) for sessions closed midway
+- `start.sh`: `npm start`. For clones: loads the repo as the plugin (`claude --plugin-dir`). Preflight (claude, node ≥18, node_modules, Chrome, `bin/maps-lists clean --older-than 7`), then language (English / Русский → `--lang ru` on the skill; forces a UTF-8 locale so bash 3.2 counts Cyrillic letters; brace vars next to `«»`, bash 3.2 reads `$list»` as one name), then mode: **research** (lists the 5 questions with examples; what incl. preferences / where / list name ≤40, `"` stripped / depth / model; soft check moves a place typed into What to Where) → `claude --plugin-dir … --model <opus|sonnet> --effort medium "/maps-lists:research …"`, or **.md file** (path resolved against the caller's cwd, optional list name) → `claude --plugin-dir … --model sonnet --effort medium "/maps-lists:import …"`. User input travels as one argv element
 - `src/connect.ts`: `--cdp auto` (reads `DevToolsActivePort`), `http://…` discovery, or `ws://…`
-- `.claude/skills/listpilot-research/SKILL.md`: optional first step. "Bakeries in Lisbon" → the `deep-research` skill (or one quick pass with `--quick`) → filtered research (no tourist traps or viral places; sources: local press, Reddit snippets, Telegram `t.me/s/` previews, Russian media + Yandex/2GIS for Russian-speaking cities) → `research/<slug>-<date>.json` → review page (`npm run review`) → `.places.md` → apply
-- `.claude/skills/listpilot-apply/SKILL.md`: Sonnet. A `.md` file of places → review page (`research/<slug>.json`; skipped for a `*.places.md`) → resolved `plan.json` + `artifacts/plan-summary.md` → run. Sample input: `examples/places.example.md`
-- `.claude/skills/listpilot-run/SKILL.md`: Haiku. Shows the summary, asks Apply (recommended, new or existing list) / Dry run, checks Chrome, runs, reports from `report.json`, cleans up after a verified apply. `--report` only reads the last report
-- `README.md` is for non-technical users (setup, `./start.sh`, troubleshooting). Commands, flags and internals go in `docs/advanced.md`
+- `skills/research/SKILL.md`: optional first step. "Bakeries in Lisbon" → the `deep-research` skill (or one quick pass with `--quick`) → filtered research (no tourist traps or viral places; sources: local press, Reddit snippets, Telegram `t.me/s/` previews, Russian media + Yandex/2GIS for Russian-speaking cities) → `research/<slug>-<date>.json` → review page (`maps-lists review`) → `.places.md` → apply
+- `skills/import/SKILL.md`: Sonnet. A `.md` file of places → review page (`research/<slug>.json`; skipped for a `*.places.md`) → resolved `plan.json` + `artifacts/plan-summary.md` → run. Sample input: `examples/places.example.md`
+- `skills/run/SKILL.md`: Haiku. Shows the summary, asks Apply (recommended, new or existing list) / Dry run, checks Chrome, runs, reports from `report.json`, cleans up after a verified apply. `--report` only reads the last report
+- `README.md` is for non-technical users (plugin install, asking Claude, troubleshooting). Commands, flags and internals go in `docs/advanced.md`
 
 ## Commands
 
@@ -105,7 +110,7 @@ npm test                                                                 # pure 
 ## Gotchas
 
 - Reading `DevToolsActivePort` needs Full Disk Access for whatever started `claude`. Started from a
-  terminal that has it, `claude '/listpilot-apply <file.md> "<List>"'` runs the whole flow itself.
+  terminal that has it, `claude '/maps-lists:import <file.md> "<List>"'` runs the whole flow itself.
   The VS Code extension gets `EPERM`, so there the user runs `dry`/`apply` in their terminal and
   Claude reads `artifacts/` afterwards.
 - Every failure leaves `artifacts/<ts>-fail-<step>.png` **and** `.yaml` (ARIA snapshot). Read the

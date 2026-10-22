@@ -1,6 +1,6 @@
 ---
-name: listpilot-run
-description: Use when a validated plan.json is ready (usually handed over by listpilot-apply) and the user wants it dry-run or applied to Google Maps through their Chrome, or wants the last run's report. Runs the executor and reports; makes no judgment calls.
+name: run
+description: Use when a validated plan.json is ready (usually handed over by maps-lists:import) and the user wants it dry-run or applied to Google Maps through their Chrome, or wants the last run's report. Runs the executor and reports; makes no judgment calls.
 argument-hint: [plan.json] [--yes] [--account <email>] [--report] [--lang ru]
 model: haiku
 effort: medium
@@ -9,26 +9,36 @@ effort: medium
 # Run plan.json against Google Maps
 
 This skill only runs commands, asks fixed questions and reports. The places were already chosen
-and resolved by `listpilot-apply`. Don't change the plan beyond what step 4 says, don't re-resolve
+and resolved by `maps-lists:import`. Don't change the plan beyond what step 4 says, don't re-resolve
 places, and don't guess. When something looks wrong, report it and stop.
+
+## Data folder
+
+`maps-lists` (on your Bash PATH while the plugin is enabled) runs the executor with
+`~/.maps-lists/` as its working folder (`MAPS_LISTS_HOME` overrides it; `maps-lists home` prints
+it). Every relative data path in this skill (`research/`, `artifacts/`, `plan.json`,
+`.gmaps-state.json`) lives there, and `maps-lists` resolves them there itself. When you Read or
+Write one of those files with your own tools, use the full path (`~/.maps-lists/plan.json`).
+Pass data files by these relative names. Pass anything else (the user's `.md`, a queries file in
+your scratchpad) as an absolute path.
 
 ## Input
 
 `$ARGUMENTS`:
 
-- **Plan path:** defaults to `plan.json` in the repo root.
+- **Plan path:** defaults to `plan.json` in the data folder.
 - **`--yes`:** after a dry run, apply without asking again.
-- **`--account <email>`:** add it to every `npm run dry` / `npm run apply` command.
+- **`--account <email>`:** add it to every `maps-lists dry` / `maps-lists apply` command.
 - **`--lang ru`:** talk to the user in Russian and use the Russian strings given below for every
   question and the report. Without it, use the language the user writes in. **Never pass this
-  `--lang` to `npm run dry` / `npm run apply`:** their own `--lang` is the Maps UI language and
+  `--lang` to `maps-lists dry` / `maps-lists apply`:** their own `--lang` is the Maps UI language and
   stays at its default (`auto`).
 - **`--report`:** skip to step 4. Read the last `artifacts/report.json` and report it (e.g. after
   the user ran the command in their own terminal).
 
 ## Flow
 
-1. **Show the summary.** Print `artifacts/plan-summary.md` (written by `listpilot-apply`) to the
+1. **Show the summary.** Print `artifacts/plan-summary.md` (written by `maps-lists:import`) to the
    user as is. If it's missing, read the plan and print the list name and the number of places instead.
    Then ask with `AskUserQuestion` (header `Mode`), in this order:
    - **Apply (Recommended)**, for new and existing lists alike: creates or updates the list, saves
@@ -42,7 +52,7 @@ places, and don't guess. When something looks wrong, report it and stop.
    In Russian: header `Режим`; **Применить (рекомендуется)** / **Пробный прогон** / **Стоп**, with
    the descriptions above translated.
 2. **Check Chrome's remote debugging.** Skip this if the user runs a dedicated profile
-   (`npm run chrome`, no `--cdp auto`). Run exactly
+   (`maps-lists chrome`, no `--cdp auto`). Run exactly
    `ls "$HOME/Library/Application Support/Google/Chrome/DevToolsActivePort" 2>&1`. Never `cat`
    this file, because it grants control of the browser. Read only the result:
    - **A path is printed:** go on.
@@ -53,16 +63,17 @@ places, and don't guess. When something looks wrong, report it and stop.
      **Открыть настройки** / **Уже включено** / **Отмена**.
    - **`Operation not permitted`:** no Full Disk Access. Go on; step 3 handles it.
 3. **Run.** Tell the user to click **Allow** in Chrome when it asks (in Russian: «Когда Chrome
-   спросит, нажмите **Allow** (Разрешить)»; the button may be in Chrome's own language). Then run from the repo root with Bash,
+   спросит, нажмите **Allow** (Разрешить)»; the button may be in Chrome's own language). Then run with Bash,
    with `timeout: 600000`:
-   - Dry run: `npm run dry -- plan.json --cdp auto`
-   - Apply: `npm run apply -- plan.json --cdp auto`
+   - Dry run: `maps-lists dry plan.json --cdp auto`
+   - Apply: `maps-lists apply plan.json --cdp auto`
 
    Use the plan path given in place of `plan.json`, and add `--account <email>` if it was given.
    Expect about 5–10 s per place.
    - **`EPERM` on `DevToolsActivePort`:** this terminal (or VS Code) has no Full Disk Access.
-     Say so and give the user the exact command to run in a terminal that has it. Tell them that
-     once it's done, `/listpilot-run --report` reads the result. Stop.
+     Say so and give the user the exact command to run in a terminal that has it, with the full
+     path, since `maps-lists` is only on PATH inside Claude: `"${CLAUDE_PLUGIN_ROOT}/bin/maps-lists" apply plan.json --cdp auto`. Tell them that
+     once it's done, `/maps-lists:run --report` reads the result. Stop.
 4. **Report** from `artifacts/report.json`. It's an array with one entry per list. Use this
    template per list, leaving out empty lines:
    ```
@@ -94,15 +105,15 @@ places, and don't guess. When something looks wrong, report it and stop.
      which ones. If several places failed with "Page crashed", say the Chrome tab crashed (not the
      places) and keep them in the plan. Then, unless `--yes` was given, ask with `AskUserQuestion`
      (header `Next`): **Apply now** / **Stop** (Stop leaves the plan for a later
-     `npm run apply`). In Russian: header `Дальше`; **Применить сейчас** / **Стоп**. With `--yes`, go straight to step 3 with Apply.
+     `maps-lists apply`). In Russian: header `Дальше`; **Применить сейчас** / **Стоп**. With `--yes`, go straight to step 3 with Apply.
    - **After apply:** list whatever `verify` found missing and offer to retry just those, with a
      plan containing only those places (`plan.retry.json`, same list name; places already saved
      are skipped anyway).
    - **Clean up only after a fully verified apply** (`verify.ok` for every list): run
-     `npm run -s clean` and add its last line to the report ("Cleaned 14 items; kept
+     `maps-lists clean` and add its last line to the report ("Cleaned 14 items; kept
      research/….places.md"). Never clean after a dry run or a failed apply: the retry and the
-     failure artifacts need those files. End those reports with "Run `npm run clean` when you're
-     done." (in Russian: «Когда закончите, запустите `npm run clean`.»)
+     failure artifacts need those files. End those reports with "Run `maps-lists clean` when you're
+     done." (in Russian: «Когда закончите, запустите `maps-lists clean`.»)
 
 ## New list vs. update
 
@@ -118,5 +129,5 @@ exact only for a list the executor creates.
 - Never delete places or lists and never change sharing. The executor has no code path for either.
 - Single-quote Maps URLs in zsh (`!` triggers history expansion inside double quotes).
 - Never print the contents of `DevToolsActivePort` and never paste `artifacts/*.yaml`.
-- Selectors live only in `src/selectors.ts`. If a run fails because Maps changed, say so and
-  suggest `npm run probe`. Don't try to fix it here.
+- Selectors live only in `${CLAUDE_PLUGIN_ROOT}/src/selectors.ts`. If a run fails because Maps changed, say so and
+  suggest `maps-lists probe`. Don't try to fix it here.

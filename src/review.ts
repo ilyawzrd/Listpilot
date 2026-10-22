@@ -9,9 +9,9 @@ import { ARTIFACTS } from "./maps.js";
 import { MAX_LIST_NAME } from "./plan.js";
 
 /**
- * Review page for a listpilot-research result. Serves research/<slug>.json on 127.0.0.1 as a page
+ * Review page for a maps-lists:research result. Serves research/<slug>.json on 127.0.0.1 as a page
  * with a checkbox and an editable note per place; "Continue" posts the choices back, which become
- * research/<slug>.places.md (the input listpilot-apply already reads). No dependencies.
+ * research/<slug>.places.md (the input maps-lists:import already reads). No dependencies.
  *
  *   npm run review -- research/<slug>.json            # opens the browser, waits for Continue
  *   npm run review -- research/<slug>.json --resume   # after exit 3: same port + token, no new tab
@@ -27,7 +27,7 @@ const ItemSchema = z.object({
   section: z.string().default(""),
   name: z.string().min(1),
   area: z.string().default(""),
-  /** The note that goes to Maps (listpilot-apply's note style). */
+  /** The note that goes to Maps (maps-lists:import's note style). */
   note: z.string().default(""),
   /** Why it's in, what to order, caveats. Plain text; [markdown](links) are rendered. */
   details: z.string().default(""),
