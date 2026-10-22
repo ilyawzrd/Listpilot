@@ -30,8 +30,25 @@ both the first time:
 - **Chrome's remote debugging:** Claude opens `chrome://inspect/#remote-debugging`; you switch it on.
   You can switch it off again when you're done.
 - **Full Disk Access for your terminal app**, so Claude can find Chrome's connection details. Claude
-  opens the right page in System Settings; you switch your terminal on, and macOS restarts it. Then
-  start `claude` again and type `/maps-lists:run` to pick up where you left off.
+  opens the right page in System Settings and tells you which app to switch on. Then quit the terminal
+  completely (Cmd-Q, or macOS's **Quit & Reopen**), open it again, start `claude` and type
+  `/maps-lists:run` to pick up where you left off.
+
+### Using the Claude desktop app
+
+The plugin also works in the **Code** tab of the Claude desktop app: install it there the same way, or
+just use it, since the desktop app and the terminal share installed plugins. Start a session on your
+Mac (not a cloud one).
+
+The one difference is connecting to Chrome. macOS doesn't give the desktop app's Claude Code the
+access it needs to use your normal Chrome, so the first time Claude offers:
+
+- **A separate Chrome window (recommended):** Chrome opens a window just for maps-lists. Sign into
+  Google there once, and it's remembered; your lists still go to your usual account and show up
+  everywhere.
+- **Your normal Chrome:** Claude shows you a path to add under Full Disk Access. This works, but has to
+  be redone each time Claude Code updates, and switching on "Claude" alone isn't enough.
+- **Running the Chrome step from the Terminal app** instead.
 
 ## Make a list
 
@@ -102,7 +119,8 @@ a week if you closed a session midway.
 - Your Google Maps can be in any language. Saving works best when your Google account is set to English,
   Spanish or Russian; with any other, Claude opens Maps in English for its own visit, and your list
   still shows up in your language.
-- Run it from the Terminal app, not from inside an editor like VS Code. Editors can't reach Chrome's settings.
+- Run it from the Terminal app or the Claude desktop app's Code tab, not from inside an editor like
+  VS Code. Editors can't reach Chrome's settings.
 
 ## If something goes wrong
 
@@ -110,8 +128,9 @@ a week if you closed a session midway.
   run it again and click **Allow**.
 - **Claude asks permission for every `maps-lists` command**: choose "Yes, and don't ask again"
   for it once.
-- **"EPERM" or "Operation not permitted"**: your terminal doesn't have Full Disk Access yet. Claude
-  offers to open the setting; after switching it on, quit and reopen the terminal.
+- **"EPERM" or "Operation not permitted"**: the app Claude runs in doesn't have Full Disk Access yet.
+  Claude offers to open the setting; after switching it on, quit the app with Cmd-Q and reopen it. In
+  the Claude desktop app, see "Using the Claude desktop app" above.
 - **Chrome isn't connected**: Claude opens `chrome://inspect/#remote-debugging` for you. Switch it on
   and tell Claude to continue.
 

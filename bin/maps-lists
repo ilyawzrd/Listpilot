@@ -3,7 +3,7 @@
 # research/, artifacts/, plan.json and .gmaps-state.json always land in one place, wherever Claude
 # was started.
 #
-#   maps-lists dry|apply|resolve|review|clean|probe|lists|check-plan|chrome [args…]
+#   maps-lists dry|apply|resolve|review|clean|probe|lists|check-plan|check-chrome|chrome [args…]
 #   MAPS_LISTS_HOME=/some/dir maps-lists …   # default ~/.maps-lists
 set -euo pipefail
 ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
@@ -43,8 +43,9 @@ case "$cmd" in
   dry)        exec "$tsx" "$ROOT/src/run.ts" --dry-run "$@" ;;
   apply)      exec "$tsx" "$ROOT/src/run.ts" "$@" ;;
   resolve|review|clean|probe|lists) exec "$tsx" "$ROOT/src/$cmd.ts" "$@" ;;
+  check-chrome) exec "$tsx" "$ROOT/src/chrome-check.ts" "$@" ;;
   check-plan) exec "$tsx" "$ROOT/src/plan.ts" --check "${1:-plan.json}" ;;
   chrome)     exec bash "$ROOT/scripts/launch-chrome.sh" ;;
   home)       echo "$HOME_DIR" ;;
-  *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|lists|check-plan|chrome|home [args…]" >&2; exit 64 ;;
+  *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|lists|check-plan|check-chrome|chrome|home [args…]" >&2; exit 64 ;;
 esac

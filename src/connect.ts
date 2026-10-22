@@ -6,7 +6,7 @@ import { chromium, type Browser } from "playwright-core";
 const SUPPORT = path.join(os.homedir(), "Library", "Application Support");
 
 /** User-data folders where a Chromium browser writes DevToolsActivePort (macOS). */
-const CANDIDATE_DIRS = [
+export const CANDIDATE_DIRS = [
   process.env.GMAPS_CHROME_DIR, // override: export GMAPS_CHROME_DIR="/path/to/user data dir"
   path.join(SUPPORT, "Google", "Chrome"),
   path.join(SUPPORT, "Google", "Chrome Beta"),

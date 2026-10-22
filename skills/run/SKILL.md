@@ -57,46 +57,67 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
 
    In Russian: header `Режим`; **Применить (рекомендуется)** / **Пробный прогон** / **Стоп**, with
    the descriptions above translated.
-2. **Check Chrome's remote debugging.** Skip this if the user runs a dedicated profile
-   (`maps-lists chrome`, no `--cdp auto`). Run exactly
-   `ls "$HOME/Library/Application Support/Google/Chrome/DevToolsActivePort" 2>&1`. Never `cat`
-   this file, because it grants control of the browser. Read only the result:
-   - **A path is printed:** go on.
-   - **`No such file or directory`:** the toggle is off. Ask with `AskUserQuestion` (header `Chrome`):
-     **Open the settings page** (run `open -a "Google Chrome" "chrome://inspect/#remote-debugging"`,
-     wait for the user to turn the toggle on and say continue, then check once more) /
-     **It's already on** (go on) / **Cancel** (stop). In Russian: header `Chrome`;
-     **Открыть настройки** / **Уже включено** / **Отмена**.
-   - **`Operation not permitted`:** the app Claude runs in has no Full Disk Access, which
-     `--cdp auto` needs to read that file. macOS has no permission prompt for it, so walk the user
-     through it. Find the app with `echo "$TERM_PROGRAM"` (`Apple_Terminal` → Terminal,
-     `iTerm.app` → iTerm, `ghostty` → Ghostty, `WarpTerminal` → Warp, `vscode` → VS Code: tell
-     them to use the Terminal app instead, since editors can't get it). Ask with `AskUserQuestion`
-     (header `Access`, in Russian `Доступ`):
-     - **Open System Settings** (`Открыть настройки`): run
-       `open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"`, then
-       say: switch on <app> in the list (+ to add it if it's missing); macOS then offers
-       **Quit & Reopen**. After reopening, start `claude` and type `/maps-lists:run`: the plan is
-       saved and it picks up here (in Russian: «включите <app> в списке (если его нет, добавьте
-       через +); macOS предложит **Quit & Reopen**. Затем запустите `claude` и введите
-       `/maps-lists:run`: план сохранён, продолжим отсюда»). Stop.
-     - **Use a separate Chrome window** (`Отдельное окно Chrome`): no Full Disk Access needed, but
-       the user signs into Google there once. Run `maps-lists chrome` with Bash
-       (`run_in_background: true`), ask them to sign in and say continue, then go to step 3
-       without `--cdp auto`.
-     - **Cancel** (`Отмена`): stop; the plan stays for `/maps-lists:run`.
-3. **Run.** Tell the user to click **Allow** in Chrome when it asks (in Russian: «Когда Chrome
-   спросит, нажмите **Allow** (Разрешить)»; the button may be in Chrome's own language). Then run with Bash,
-   with `timeout: 600000`:
-   - Dry run: `maps-lists dry plan.json --cdp auto`
-   - Apply: `maps-lists apply plan.json --cdp auto`
+2. **Check Chrome.** Run `maps-lists check-chrome`. It prints one JSON line,
+   `{mode, status, host: {kind, app?, appPath?}, readyBefore?}`. Never look at `DevToolsActivePort`
+   yourself (no `ls`, `cat` or any other read): it grants control of the browser, and only
+   `check-chrome` and the executor touch it.
+
+   **`mode: "main"`** (the user's own Chrome; the default):
+   - **`ready`:** step 3 with `--cdp auto`.
+   - **`debugging-off`:** the remote debugging toggle is off, or Chrome isn't running. Ask with
+     `AskUserQuestion` (header `Chrome`): **Open the settings page** (run
+     `open -a "Google Chrome" "chrome://inspect/#remote-debugging"`, wait for the user to turn the
+     toggle on and say continue, then run `check-chrome` again) / **It's already on** (run it again) /
+     **Cancel** (stop). In Russian: **Открыть настройки** / **Уже включено** / **Отмена**.
+   - **`no-access`:** macOS blocks the file: whatever it holds responsible for Claude's commands has
+     no Full Disk Access. macOS has no permission prompt for it. What to offer depends on `host.kind`:
+     - **`terminal`** (or `unknown`): ask (header `Access`, in Russian `Доступ`):
+       **Open System Settings (Recommended)**: run
+       `open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"`, then say:
+       switch on **<host.app>** (if it's missing, click +, press Cmd-Shift-G and paste
+       `<host.appPath>`), then quit <host.app> completely with Cmd-Q (macOS's **Quit & Reopen** does
+       the same), reopen it, start `claude` and type `/maps-lists:run`: the plan is saved and it
+       picks up here. A reload or a new tab isn't enough. Stop. /
+       **Use a separate Chrome window** (below) / **Cancel** (stop; the plan stays).
+     - **`desktop`** (the Claude desktop app's Code tab): macOS checks the Claude Code copy inside
+       the app, not "Claude", and that copy's folder changes with every Claude Code update. If
+       `readyBefore` is set, say first that Claude Code was updated, so macOS needs the new copy
+       added. Ask (header `Chrome`):
+       **Separate Chrome window (Recommended)**: sign into Google once, then it keeps working
+       through updates (below). /
+       **Use my normal Chrome**: run the `open "x-apple.systempreferences:…"` command above, then
+       say: click +, press Cmd-Shift-G, paste this path and click Open, then quit Claude with Cmd-Q,
+       reopen it, start a new Code session and type `/maps-lists:run`. Give `<host.appPath>` on a
+       line of its own so it's easy to copy. Add that this has to be redone after Claude Code
+       updates, and that switching on "Claude" in the list isn't enough. Stop. /
+       **Run this step from Terminal**: give the full command
+       `"${CLAUDE_PLUGIN_ROOT}/bin/maps-lists" apply plan.json --cdp auto` (Terminal needs Full
+       Disk Access too) and say `/maps-lists:run --report` reads the result afterwards. Stop. /
+       **Cancel**.
+     - **`editor`** (VS Code and the like): editors can't get it. Offer **Use a separate Chrome
+       window** / **Cancel**, and mention the Terminal app as the other way.
+
+   **Use a separate Chrome window** (when chosen): run `maps-lists check-chrome --set separate`
+   (remembered from now on), then `maps-lists chrome` with Bash, `run_in_background: true`. Say a
+   new Chrome window opened just for maps-lists: the first time, sign into Google there (the same
+   account as usual; lists show up everywhere), then say continue. Run `check-chrome` again.
+
+   **`mode: "separate"`** (remembered from an earlier run):
+   - **`ready`:** step 3 without `--cdp auto`.
+   - **`not-running`:** say you're opening the maps-lists Chrome window, run `maps-lists chrome`
+     (`run_in_background: true`), wait a few seconds, and check again; after three tries, report it.
+   - If the user asks to use their normal Chrome again, run `maps-lists check-chrome --set main`
+     and start step 2 over.
+3. **Run.** In main mode, tell the user to click **Allow** in Chrome when it asks (in Russian:
+   «Когда Chrome спросит, нажмите **Allow** (Разрешить)»; the button may be in Chrome's own
+   language); the separate window doesn't ask. Then run with Bash, with `timeout: 600000`:
+   - Dry run: `maps-lists dry plan.json` (+ `--cdp auto` in main mode)
+   - Apply: `maps-lists apply plan.json` (+ `--cdp auto` in main mode)
 
    Use the plan path given in place of `plan.json`, and add `--account <email>` if it was given.
    Expect about 5–10 s per place.
-   - **`EPERM` on `DevToolsActivePort`:** no Full Disk Access after all. Offer step 2's
-     `Operation not permitted` options, or give the user the exact command to run in a terminal that has it, with the full
-     path, since `maps-lists` is only on PATH inside Claude: `"${CLAUDE_PLUGIN_ROOT}/bin/maps-lists" apply plan.json --cdp auto`. Tell them that
-     once it's done, `/maps-lists:run --report` reads the result. Stop.
+   - **`EPERM` on `DevToolsActivePort`:** run `maps-lists check-chrome` and follow its
+     `no-access` branch above.
 4. **Report** from `artifacts/report.json`. It's an array with one entry per list. Use this
    template per list, leaving out empty lines:
    ```

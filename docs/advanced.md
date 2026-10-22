@@ -131,6 +131,7 @@ start Claude in:
 | `plan.json` | the resolved plan the executor runs |
 | `artifacts/` | run report, failure screenshots and ARIA snapshots |
 | `.gmaps-state.json` | every list the executor created or opened, with its Maps link |
+| `config.json` | your Chrome choice (normal or separate window); kept by cleanup |
 | `reports/`, `research_notes/` | deep research's own report and notes |
 
 `/maps-lists:lists` reads the places files and the state file. It shows what was saved through
@@ -157,17 +158,27 @@ attached. Switch the toggle off when you're done. The executor finds the connect
 Chrome's `DevToolsActivePort` file (also for Chrome Beta/Canary, Brave, Edge and Arc; set
 `GMAPS_CHROME_DIR` if yours is elsewhere).
 
-- **macOS Full Disk Access:** reading that file needs it for the app Claude runs in. macOS has no
-  prompt for it, so Claude opens System Settings → Privacy & Security → Full Disk Access for you.
-  After switching your terminal on, quit and reopen it, start `claude`, and type `/maps-lists:run`.
+- **macOS Full Disk Access:** reading that file needs it for the app macOS holds responsible for
+  Claude's commands. Before connecting, Claude runs `maps-lists check-chrome`, which reports ready /
+  remote debugging off / no access without showing the file, and names the app to switch on. macOS
+  has no prompt for it, so Claude opens System Settings → Privacy & Security → Full Disk Access for
+  you. After switching your terminal on, quit it with Cmd-Q, reopen it, start `claude`, and type
+  `/maps-lists:run`.
+- **Claude desktop app (Code tab):** macOS checks the desktop app's own Claude Code copy
+  (`~/Library/Application Support/Claude/claude-code/<version>/…/claude.app`), not "Claude", and the
+  path changes with every Claude Code update. So there the separate Chrome window is recommended;
+  adding that path works until the next update, and Claude says so when an update breaks it.
 - Editor extensions (VS Code) can't read the file at all (`EPERM`). There Claude prepares the plan
   and gives you the command to run in a terminal; `/maps-lists:run --report` reads the result.
 - `403 Forbidden … Connection rejected` means the Allow dialog wasn't approved. Bring Chrome to the
   front, run it again, and click **Allow**.
 
 **A separate Chrome window.** No Full Disk Access needed: ask Claude to "use a separate Chrome
-window". It starts a dedicated Chrome profile on `127.0.0.1:9222` (`maps-lists chrome`); sign into
-Google there once and the profile remembers it.
+window", or pick it when it's offered. It starts a dedicated Chrome profile on `127.0.0.1:9222`
+(`maps-lists chrome`, profile in `~/.gmaps-automation-profile`); sign into Google there once and the
+profile remembers it. The choice is remembered in `~/.maps-lists/config.json`
+(`maps-lists check-chrome --set main` switches back), and later runs open the window when it isn't
+running. It doesn't ask you to Allow each connection.
 
 **Signed in to several Google accounts?** Say which one (`--account you@gmail.com`, or
 `export GMAPS_ACCOUNT=you@gmail.com`). Dry run and apply then stop before writing anything if Chrome
@@ -209,6 +220,7 @@ npm run resolve -- queries.txt [--lang ca]               # one query per line, n
 npm run clean -- --dry-run               # what cleanup would remove; --older-than 7 for the weekly sweep
 npm run check-plan -- plan.json          # validate a plan
 npm run chrome                           # dedicated Chrome profile on 127.0.0.1:9222 (then leave out --cdp auto)
+bin/maps-lists check-chrome [--set main|separate]   # JSON: mode, ready / debugging-off / no-access / not-running, host app
 ```
 
 > **zsh:** put Maps URLs in **single quotes**. Inside double quotes, zsh expands the `!` in
