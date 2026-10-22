@@ -262,8 +262,37 @@ async function finishList(
     r.notesSkipped.push(p.title);
     return true;
   };
+  // Same-title entries with one shared note (chain branches always get the same note): which row is
+  // which branch doesn't matter, and rows carry no address to tell them apart, while Maps moves
+  // every new or edited row to the top, so pairing by position goes wrong when some branches were
+  // already in the list. Handle such groups as a whole: every row of the group gets the note.
+  const shared = new Map<string, Resolved[]>();
+  for (const p of resolved) {
+    const group = titleGroup(resolved, p.title, (x) => x.title);
+    if (group.length < 2 || group[0] !== p || !group.every((x) => x.note && norm(x.note) === norm(group[0]!.note!))) continue;
+    shared.set(p.title, group);
+  }
+  const inShared = (p: Resolved) => [...shared.values()].some((g) => g.includes(p));
+  for (const [title, group] of shared) {
+    for (const row of titleGroup(before, title, (i) => i.title, titles)) {
+      if (!norm(row.note).includes(norm(group[0]!.note!)) && noteCovered(row.note, group[0]!.note!)) r.notesSkipped.push(title);
+    }
+    // Write one row at a time and re-read: the edited row jumps to the top, so indices shift.
+    for (let attempt = 0; attempt < group.length; attempt++) {
+      const rows = titleGroup(await readList(page), title, (i) => i.title, titles);
+      const nth = rows.findIndex((row) => !noteCovered(row.note, group[0]!.note!));
+      if (nth < 0) break;
+      try {
+        const res = await retry(page, `note-${title}`, () => writeNote(page, title, group[0]!.note!, nth, titles));
+        if (res === "written") r.notesWritten.push(title);
+      } catch (e) {
+        r.failed.push({ name: title, reason: `note: ${(e as Error).message}` });
+        break;
+      }
+    }
+  }
   // Editing a note moves its row to the top, so a ranked list writes notes from the bottom rank up.
-  const toWrite = resolved.filter((x) => x.note && !hasNote(x));
+  const toWrite = resolved.filter((x) => x.note && !inShared(x) && !hasNote(x));
   if (list.ordered && newestFirst) toWrite.reverse();
   if (list.ordered && toWrite.length && toWrite.length < resolved.length) {
     r.warnings.push("Only some places get a note written; those rows move to the top, so the ranking may be off.");
@@ -283,9 +312,13 @@ async function finishList(
   const rowFor = (p: Resolved) => titleGroup(observed, p.title, (i) => i.title, titles)[nthOfTitle(p)];
   const missing = resolved.filter((p) => !rowFor(p)).map((p) => p.title);
   const notesMissing = resolved
-    .filter((p) => p.note && rowFor(p))
+    .filter((p) => p.note && rowFor(p) && !inShared(p))
     .filter((p) => !norm(rowFor(p)!.note).includes(norm(p.note!).slice(0, 40)) && !noteCovered(rowFor(p)!.note, p.note!))
     .map((p) => p.title);
+  for (const [title, group] of shared) {
+    const withNote = titleGroup(observed, title, (i) => i.title, titles).filter((row) => noteCovered(row.note, group[0]!.note!));
+    for (let i = withNote.length; i < group.length; i++) notesMissing.push(title);
+  }
   let orderOk: boolean | null = null;
   if (list.ordered && r.created) {
     // Same pairing as above, so chain branches get distinct rows instead of all matching the first.
