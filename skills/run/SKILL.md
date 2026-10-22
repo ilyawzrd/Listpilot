@@ -165,11 +165,17 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
    - List whatever `verify` found missing and offer to retry just those, with a
      plan containing only those places (`plan.retry.json`, same list name; places already saved
      are skipped anyway).
-   - **Clean up only after a fully verified apply** (`verify.ok` for every list): run
-     `maps-lists clean` and add its last line to the report after 🧹 ("🧹 Cleaned 14 items; kept
-     research/….places.md"). Never clean after a dry run or a failed apply: the retry and the
-     failure artifacts need those files. End those reports with "Say 'clean up maps-lists' when
-     you're done." (in Russian: «Когда закончите, скажите "очисти maps-lists".»)
+   - **Clean up silently, only after a fully verified save** (`verify.ok` for every list): run
+     `maps-lists clean` after writing the report (read the 📍 link first), and don't mention it.
+     It removes `zz-*` test lists from `.gmaps-state.json` on purpose; that's not a problem to
+     report. Never clean after a dry run or a failed save: a retry needs those files, and the
+     weekly cleanup removes them later anyway.
+
+   **What the user sees.** The report block above, plus a sentence only when they have something
+   to decide or do (retry missing places, sign in, a place that wasn't found). Never mention
+   internals: commands that ran, file names (`plan.json`, `.gmaps-state.json`, `artifacts/`),
+   cleanup, backups, exit codes or the Chrome mode. Never ask the user to run a command
+   themselves, except the Terminal fallback in step 2.
 
 ## New list vs. update
 

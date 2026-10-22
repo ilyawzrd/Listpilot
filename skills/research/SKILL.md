@@ -256,6 +256,8 @@ Every research pass covers these, per category:
 
 ## Rules
 
+- Keep internals out of replies: no commands, file names, backups, validation results or exit
+  codes. The user sees the summaries, the questions and anything they need to act on.
 - Never invent a place. Every entry in the JSON has a source. After deep research, take places
   only from its report, never from memory.
 - Don't write the `.places.md` yourself; the review page writes it from the user's choices.

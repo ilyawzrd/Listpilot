@@ -195,6 +195,8 @@ states two limits:
 
 ## Rules
 
+- Keep internals out of replies: no commands, file names, backups, validation results or exit
+  codes. The user sees the summaries, the questions and anything they need to act on.
 - Never delete places or lists, never change sharing. The executor has no code path for
   either.
 - Ambiguous places become **unresolved**. Never guess.
