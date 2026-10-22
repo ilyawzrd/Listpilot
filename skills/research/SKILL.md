@@ -224,8 +224,19 @@ Every research pass covers these, per category:
      search snippets.
 
    Validate with `maps-lists review --check <json>` and fix any reported field.
-4. **Review.** Tell the user in 2–3 lines how many places per category, how many were filtered out
-   and why, and that a page is opening in their browser. Then run
+4. **Review.** Tell the user what the research found, as Markdown in the conversation language:
+
+   > ## 🔎 Lisbon Bakeries · 18 places
+   >
+   > | Category | Kept | Classics | Filtered out |
+   > |---|:-:|:-:|:-:|
+   > | Bakeries | 11 | 2 | 4 |
+   > | Coffee | 7 | 1 | 2 |
+   >
+   > **Filtered out:** 3 tourist traps, 2 viral, 1 closed (you can tick them back in)
+   > 🌐 A review page is opening in your browser: untick places, edit notes, press **Continue**.
+
+   Leave out the Classics column with `--gems`. Then run
    `maps-lists review <json>` with Bash, `timeout: 600000`. It serves the page on 127.0.0.1 and
    waits. The user unticks places, edits notes, can tick filtered-out ones back in, and presses
    **Continue**. Act on the exit code:

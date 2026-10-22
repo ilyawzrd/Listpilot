@@ -117,36 +117,41 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
    - Apply: `maps-lists apply plan.json` (+ `--cdp auto` in main mode)
 
    Use the plan path given in place of `plan.json`, and add `--account <email>` if it was given.
-   Expect about 5–10 s per place.
+   Expect about 5–10 s per place. Say once that Chrome opens a tab of its own for this, to leave it
+   alone, and that it closes when done (the executor never touches tabs already open).
    - **`EPERM` on `DevToolsActivePort`:** run `maps-lists check-chrome` and follow its
      `no-access` branch above.
    - **`NOT_SIGNED_IN`:** nothing was written. The Chrome window it used isn't signed into Google:
      in the separate window, say to click **Sign in** at the top right of Google Maps there and
      sign into the account the list should go to; in main mode, to sign into Chrome's Google Maps.
      When they say continue, run the same command again.
-4. **Report** from `artifacts/report.json`. It's an array with one entry per list. Use this
-   template per list, leaving out empty lines:
-   ```
-   <Dry run | Apply> — <list>  (created: yes/no)
-   Added: N                     (dry run: would add N)   ← added
-   Already in list: N                                     ← alreadyPresent
-   Notes written: N                                       ← notesWritten
-   Unresolved: N — <name: reason>                         ← unresolved (closed places are here too)
-   Failed: N — <name: reason>                             ← failed
-   Verify: ok | missing <names> | notes missing <names>   ← verify (apply only)
-   Warnings: <warnings>
-   ```
-   In another language, the same template with translated labels; in Russian:
-   ```
-   <Пробный прогон | Применение> — <list>  (создан: да/нет)
-   Добавлено: N                 (пробный прогон: будет добавлено N)
-   Уже в списке: N
-   Заметок записано: N
-   Не найдено: N — <name: reason>
-   Ошибки: N — <name: reason>
-   Проверка: ок | нет мест <names> | нет заметок <names>
-   Предупреждения: <warnings>
-   ```
+4. **Report** from `artifacts/report.json`. It's an array with one entry per list. Write it as
+   Markdown (not inside a code block), one block per list, in this shape, leaving out empty parts:
+
+   > ## ✅ Apply — zz-test · new list
+   >
+   > | Added | Already in list | Notes written | Not found | Failed |
+   > |:-----:|:-----:|:-----:|:-----:|:-----:|
+   > | 10 | 0 | 10 | 1 | 0 |
+   >
+   > **Verify:** ✅ every place and note found after a hard reload
+   > **Not found:** El Granjero (no match on Maps)
+   > 📍 [Open zz-test in Google Maps](<the list's url from .gmaps-state.json>)
+
+   - Heading icon: ✅ everything verified (dry run: nothing failed) · ⚠️ verify found something
+     missing, or places weren't found · ❌ failed places or the run stopped. Heading text:
+     `Apply` or `Dry run`, the list name, `new list` / `existing list` (`created`).
+   - Table columns ← report fields: Added ← `added` (dry run: "Would add"), Already in list ←
+     `alreadyPresent`, Notes written ← `notesWritten` (leave out for a dry run), Not found ←
+     `unresolved` (closed places count here), Failed ← `failed`.
+   - Then one bold-labelled line each, only when there's something to say: **Verify:** (apply
+     only: ✅ … or ⚠️ missing `<names>` / notes missing `<names>`), **Not found:** and
+     **Failed:** with `name (reason)` comma-separated (a bullet list when more than 5),
+     **Warnings:**.
+   - 📍 link: the list's `url` in `.gmaps-state.json` in the data folder, when it has one.
+   - In another language, translate the labels (in Russian: Применение / Пробный прогон, новый
+     список / существующий, Добавлено, Уже в списке, Заметок, Не найдено, Ошибки, Проверка,
+     Предупреждения, «Открыть в Google Картах»).
    Place names stay as the report has them; translate the reasons and warnings.
    Exit code 2 means verification found missing places or notes. For a failure, read the
    matching `artifacts/*-fail-*.yaml` to give the reason in a few words. Never paste the yaml:
@@ -160,7 +165,7 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
      plan containing only those places (`plan.retry.json`, same list name; places already saved
      are skipped anyway).
    - **Clean up only after a fully verified apply** (`verify.ok` for every list): run
-     `maps-lists clean` and add its last line to the report ("Cleaned 14 items; kept
+     `maps-lists clean` and add its last line to the report after 🧹 ("🧹 Cleaned 14 items; kept
      research/….places.md"). Never clean after a dry run or a failed apply: the retry and the
      failure artifacts need those files. End those reports with "Run `maps-lists clean` when you're
      done." (in Russian: «Когда закончите, запустите `maps-lists clean`.»)

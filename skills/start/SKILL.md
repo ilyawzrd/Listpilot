@@ -47,7 +47,10 @@ the signed-in account, so never ask about it.
 
    Don't ask depth or model here: `maps-lists:research` asks both, with their trade-offs, right
    before it starts.
-4. **What happens next.** Before handing off, tell the user in a few lines:
+4. **What happens next.** Before handing off, tell the user as a short Markdown block: a
+   `### What happens next` heading (translated), then a numbered list, each step starting with an
+   icon (🔎 research or 📄 reading the file, 🌐 review page, 📍 looking places up on Maps,
+   🔐 Chrome access, ✅ Apply), one line each, covering:
    - For research: Claude asks how deep to go and which model to use, then researches. Famous
      places locals still rate stay in as classics; tourist traps, viral spots and closed places
      are filtered out.

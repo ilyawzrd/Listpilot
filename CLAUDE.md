@@ -63,7 +63,7 @@ npm test                                                                 # pure 
     fails with `EPERM` (TCC).
   - Chrome shows an **Allow** dialog on every new CDP connection, so the first action of each run
     waits for the user to click it.
-- **Dedicated profile**: `npm run chrome` starts one on **9333** with normal HTTP discovery. Drop `--cdp auto`. Not 9222: the main Chrome toggle holds 127.0.0.1:9222, and a second Chrome on it binds only `[::1]`, so `127.0.0.1:9222` reaches the main Chrome (404) and the profile looks "not running" (seen Oct 2026).
+- **Dedicated profile**: `npm run chrome` starts one on **9333** with normal HTTP discovery. Drop `--cdp auto`. Not 9222: the main Chrome toggle holds 127.0.0.1:9222, and a second Chrome on it binds only `[::1]`, so `127.0.0.1:9222` reaches the main Chrome (404) and the profile looks "not running" (seen Oct 2026). Desktop app Code tab → separate window → sign-in → apply + verify passed (Oct 2026).
 - **Account guard** (optional): `--account you@gmail.com` or `GMAPS_ACCOUNT` makes `dry`/`apply` stop
   before anything else if the signed-in account (`button "Google Account: <Name> (<email>)"`) doesn't match.
   The error never prints the account it found.

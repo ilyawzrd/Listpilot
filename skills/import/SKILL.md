@@ -138,14 +138,26 @@ session started from a terminal with Full Disk Access.
    to `plan.<YYYYMMDD-HHMM>.json` first. The schema is in `${CLAUDE_PLUGIN_ROOT}/src/plan.ts` and a
    sample is in `${CLAUDE_PLUGIN_ROOT}/examples/plan.example.json`. Validate it with
    `maps-lists check-plan plan.json`.
-6. **Write the handoff** to `artifacts/plan-summary.md`, a few plain lines that
-   `maps-lists:run` shows as is: the list name, whether it's new or already exists (it exists if
-   `.gmaps-state.json` has it, or if the user says so), the number of places and chain branches,
-   and each unresolved place with what was found for it. For a **new** list, also list every
-   resolved place as `Maps name — address` (compact, one per line, grouped as in the document).
-   That's the preview, since a dry run of a new list adds nothing. For an **update**, add the
-   two limits from "New list vs. update" below. Write the whole summary in the conversation
-   language (in Russian, e.g. «Список: … (новый)», «Мест: 12, из них филиалов сети: 3», «Не найдено: …»).
+6. **Write the handoff** to `artifacts/plan-summary.md`, Markdown that `maps-lists:run` shows as
+   is, in the conversation language. The list is new unless `.gmaps-state.json` has it or the user
+   says it exists. Shape:
+
+   > ## 📋 Lisbon Bakeries · new list
+   > **12 places** · 3 of them branches of one chain · 1 not found
+   >
+   > ### Pastelarias
+   > - **Manteigaria** — Rua do Loreto 2, Lisboa
+   > - **Manteigaria** — Rua Augusta 195, Lisboa
+   >
+   > ⚠️ **Not found:** Padaria X (two places with that name in Lisbon; skipped)
+
+   - **New list:** every resolved place as `**Maps name** — address`, grouped under `###`
+     headings as in the document. That's the preview, since a dry run of a new list adds nothing.
+   - **Update** (`existing list`): the counts line, the not-found line, then the two limits from
+     "New list vs. update" below as a short ℹ️ note.
+   - Each not-found place with what was found for it. Leave out lines with nothing to say.
+   - Translate headings and labels (in Russian, e.g. «новый список», «12 мест · из них 3 филиала
+     одной сети», «Не найдено»).
 7. **Hand off to `maps-lists:run`.** Invoke the `maps-lists:run` skill with the plan path, plus
    `--yes`, `--account <email>` and `--lang <tag>` if they were given. It runs on a smaller model and does the
    rest: the Apply / Dry run question, Chrome checks, the run and the report.

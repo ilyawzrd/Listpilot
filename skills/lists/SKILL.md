@@ -28,21 +28,38 @@ Reply in the language the user writes in. Place names and notes stay as the file
 1. Run `maps-lists lists` with Bash. It prints a JSON array, newest first:
    `{name, url?, files: [{path, date?, places}], places}`. `url` is the list's Google Maps link;
    `files` are its places files, oldest first.
-2. **No list named in `$ARGUMENTS` or the request** ("what lists have I made?"): show a compact
-   table, newest first: list name, places, date of the last file, and the Maps link as a
-   markdown link ("Open in Maps" / «Открыть в Картах»). A list with no files: "—" for places and
+   Write replies as Markdown (headings, tables, bold), never inside a code block.
+2. **No list named in `$ARGUMENTS` or the request** ("what lists have I made?"): a heading
+   `## 🗺️ Your lists (N)`, then a table, newest first, with columns List (bold name), Places,
+   Updated (date of the last file, e.g. `19 Oct`), and Maps (`📍 [Open](<url>)`); translate the
+   labels. A list with no files: "—" for places and
    "places not recorded" in a footnote. Empty array: say no lists have been made yet, and that
    asking for places in a city (or `/maps-lists:start`) makes one.
 3. **A list named** ("show my San Francisco list", "what bakeries did I save in Barcelona"):
    match it against the names, case-insensitively and loosely (a city or a word of the name). Several
    matches: ask with `AskUserQuestion` (header `List`, in Russian `Список`), one option per match.
-   Then Read each of its files, oldest first, and show:
-   - The list name, the Maps link and the place count.
-   - The places grouped by `## ` section, as `**Name** (area): note`, one per line. With two or
-     more files, merge sections of the same name and drop a place that repeats (same name and
-     area), keeping the later note.
-   - One line at the end: these are the places saved through maps-lists; anything changed by hand
-     in Maps isn't shown.
+   Then Read each of its files, oldest first, and show, as Markdown:
+
+   > ## 🗺️ San Francisco · 14 places
+   > 📍 [Open in Google Maps](<url>) · updated 19 Oct
+   >
+   > ### Bakeries
+   > - **Arsicault Bakery** · all branches
+   >   Butter croissant, baked all morning. Go on a weekday before 9.
+   > - **Tartine** · Mission
+   >   Morning bun; go before 9 or on a weekday.
+   >
+   > ### Coffee
+   > - …
+   >
+   > *Places saved through maps-lists; changes made by hand in Maps aren't shown.*
+
+   - One `###` per `## ` section of the files; each place as a bullet with the bold name and the
+     area after ` · `, and its note on the next line (indented two spaces). A place with no note
+     is one line.
+   - With two or more files, merge sections of the same name and drop a place that repeats (same
+     name and area), keeping the later note.
+   - Translate the fixed words (places, updated, the closing line); names and notes stay as they are.
    A list with no files: give the Maps link and say its places weren't recorded (it was made
    before places files were kept).
 4. **Follow-ups**, when the user asks:
