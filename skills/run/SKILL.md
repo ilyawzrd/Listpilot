@@ -1,7 +1,7 @@
 ---
 name: run
 description: Use when a validated plan.json is ready (usually handed over by maps-lists:import) and the user wants it dry-run or applied to Google Maps through their Chrome, or wants the last run's report. Runs the executor and reports; makes no judgment calls.
-argument-hint: [plan.json] [--yes] [--account <email>] [--report] [--lang <tag>]
+argument-hint: [plan.json] [--apply] [--yes] [--account <email>] [--report] [--lang <tag>]
 model: haiku
 effort: medium
 ---
@@ -33,6 +33,8 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
 
 - **Plan path:** defaults to `plan.json` in the data folder.
 - **`--yes`:** after a dry run, apply without asking again.
+- **`--apply`:** the user named the places to add themselves (a direct add from
+  `maps-lists:import`): show the summary, skip step 1's question, and apply.
 - **`--account <email>`:** add it to every `maps-lists dry` / `maps-lists apply` command.
 - **`--lang <tag>`:** the conversation language. Talk to the user in it and use it for every
   question and the report; Russian strings are given below, translate the English ones for any other
@@ -46,7 +48,8 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
 
 1. **Show the summary.** Print `artifacts/plan-summary.md` (written by `maps-lists:import`) to the
    user as is. If it's missing, read the plan and print the list name and the number of places instead.
-   Then ask with `AskUserQuestion` (header `Mode`), in this order:
+   With `--apply`, go straight to step 2 and apply. Otherwise ask with `AskUserQuestion` (header
+   `Mode`), in this order:
    - **Apply (Recommended)**, for new and existing lists alike: creates or updates the list, saves
      places, appends notes, then hard-reloads and verifies. `apply` checks each place's own
      Save-dialog checkbox, skips closed and unresolved places, and never saves a place twice.
@@ -180,8 +183,9 @@ exact only for a list the executor creates.
 
 ## Rules
 
-- Never run `apply` unless the user picked Apply (step 1 or 4) or passed `--yes`, and `--yes` only
-  skips the question after a dry run. Step 1's question is always asked.
+- Never run `apply` unless the user picked Apply (step 1 or 4), passed `--yes`, or it's a direct
+  add (`--apply`). `--yes` only skips the question after a dry run; without `--apply`, step 1's
+  question is always asked.
 - Never delete places or lists and never change sharing. The executor has no code path for either.
 - Single-quote Maps URLs in zsh (`!` triggers history expansion inside double quotes).
 - Never print the contents of `DevToolsActivePort` and never paste `artifacts/*.yaml`.

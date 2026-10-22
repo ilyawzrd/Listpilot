@@ -84,6 +84,10 @@ Press **Continue**. Claude looks every place up on Google Maps and asks whether 
 to your list) or do a **Dry run** (just show what would change). Chrome then asks you to **Allow** the
 connection. Click it, and Claude saves the places and checks that everything arrived.
 
+**Just one or two places?** Name them: "add Mr. Holmes Bakehouse in San Francisco to my SF list".
+Claude looks them up and saves them straight away, with no review page and no Apply question. If a
+name matches several places, it asks which one; add "with the note: …" to give it a note.
+
 **Already have a list of places?** Type your request and drag the file into the terminal window
 (dropping a file there pastes its location), for example:
 

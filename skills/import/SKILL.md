@@ -1,7 +1,7 @@
 ---
 name: import
-description: Use when the user wants places from a file (.md, .txt, PDF, Word, a saved web page or email, a screenshot), from text pasted into the chat, or from a maps-lists:research places file added to a Google Maps saved list, or an existing list updated, with notes. Opens the review page (checkboxes, editable notes) for a file that wasn't reviewed yet, builds plan.json, then hands it to maps-lists:run to apply with the plugin's deterministic executor.
-argument-hint: <file or pasted text> ["List name"] [--yes] [--account <email>] [--lang <tag>]
+description: Use when the user names places to add to a Google Maps list ("add Tartine to my SF list"), or wants places from a file (.md, .txt, PDF, Word, a saved web page or email, a screenshot), from text pasted into the chat, or from a maps-lists:research places file added to a Google Maps saved list, or an existing list updated, with notes. Opens the review page (checkboxes, editable notes) for a file that wasn't reviewed yet, builds plan.json, then hands it to maps-lists:run to apply with the plugin's deterministic executor.
+argument-hint: <places, a file or pasted text> ["List name"] [--yes] [--account <email>] [--lang <tag>]
 model: sonnet
 effort: medium
 ---
@@ -32,6 +32,8 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
 `$ARGUMENTS`, e.g. `~/Downloads/la.md "LA Eats" --yes`:
 
 - **The source**, one of:
+  - **places the user names in their own message** ("add Mr. Holmes Bakehouse and Tartine to
+    zz-test", "save Morreig to Barcelona"): a direct add, see below;
   - a path to a file with places (headings, bullets or free text; see
     `${CLAUDE_PLUGIN_ROOT}/examples/places.example.md`). Dragging a file into the terminal pastes
     its path, often quoted or with `\ ` before spaces: strip those, expand `~`, make it absolute;
@@ -90,8 +92,8 @@ session started from a terminal with Full Disk Access.
    ("Where to Eat & Drink in Los Angeles (October 2026)" → "LA Eat & Drink (Oct 2026)";
    «Куда сходить поесть и выпить в Санкт-Петербурге (октябрь 2026)» → «Еда и бары СПб (окт 2026)»);
    say what you picked. A longer name from the arguments: ask for a shorter one.
-3. **Review page.** Skip this step for a `*.places.md`: it comes from `maps-lists:research` and was
-   already reviewed on this page. Every other file goes through it.
+3. **Review page.** Skip this step for a `*.places.md` (it comes from `maps-lists:research` and was
+   already reviewed on this page) and for a **direct add** (below). Every other source goes through it.
    - Write `research/<slug>-<YYYYMMDD>.json`, with the slug from the file's basename (ASCII only,
      e.g. `research/la-eats-20261019.json`; for a `.source.md`, drop `.source`). The schema is `ResearchSchema` in `${CLAUDE_PLUGIN_ROOT}/src/review.ts`
      (sample: `${CLAUDE_PLUGIN_ROOT}/examples/research.example.json`), filled from step 1:
@@ -159,8 +161,26 @@ session started from a terminal with Full Disk Access.
    - Translate headings and labels (in Russian, e.g. «новый список», «12 мест · из них 3 филиала
      одной сети», «Не найдено»).
 7. **Hand off to `maps-lists:run`.** Invoke the `maps-lists:run` skill with the plan path, plus
-   `--yes`, `--account <email>` and `--lang <tag>` if they were given. It runs on a smaller model and does the
+   `--apply` for a direct add, and `--yes`, `--account <email>` and `--lang <tag>` if they were given. It runs on a smaller model and does the
    rest: the Apply / Dry run question, Chrome checks, the run and the report.
+
+## Direct add
+
+When the user names the places themselves in their message, they've already decided, so don't
+make them confirm it again. What counts: places typed by the user as the thing to add ("add X and Y
+to Z"). What doesn't: a pasted list or article, a file, or research results; those are someone
+else's picks and go through the review page.
+
+- Skip steps 0 and 3. Step 1 takes the places from the message; a note only when the user gave one
+  ("…with the note: get the morning bun"), in their words. Ask for the list name if there's none.
+- Resolve as in step 4, using the city from the message, the list name or the list's other places.
+  When a name matches several places (two places with that name, or a chain the user didn't pin to
+  one branch), ask with `AskUserQuestion` (header `Which one?`), one option per candidate as
+  `Name · address`, plus **All branches** for a chain. Never pick one yourself. Nothing found:
+  say so and ask for a street or neighbourhood.
+- Write `plan.json` and a short summary as usual; then hand off with `--apply`, so the place is
+  saved straight away with no Apply / Dry run question. Before that, say in one line what will be
+  saved: `📍 Mr. Holmes Bakehouse · 1042 Larkin St → zz-test`.
 
 ## New list vs. update
 

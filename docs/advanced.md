@@ -81,6 +81,14 @@ blocks direct fetches), Telegram channels through their public `t.me/s/<channel>
 Russian-speaking cities it searches in Russian first and adds Russian food media, Yandex Maps / 2GIS
 review snippets and Telegram as a primary source.
 
+### Adding places you name
+
+"Add Tartine and Morreig to zz-test" is a direct add: no review page and no Apply / Dry run question,
+since you've already decided. Claude says in one line what it matched (`📍 Name · address → list`)
+and saves. A name that matches several places, or a chain, gets a quick "which one?" question
+(with "All branches" for a chain); a note only goes in if you give one. Pasted lists, files and
+research still go through the review page.
+
 ### From a list you have
 
 Give Claude a file (drag it into the terminal) or paste the list. Markdown is read as is; `.txt`,
