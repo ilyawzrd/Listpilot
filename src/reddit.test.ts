@@ -31,8 +31,9 @@ test("parseStatus reads rdt's envelope", () => {
 test("findUv falls back to the installers' folders when uv isn't on PATH", async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "uv-"));
   assert.equal(findUv([dir], () => undefined), undefined);
-  await fs.writeFile(path.join(dir, "uv"), "");
-  assert.equal(findUv([dir], () => undefined), path.join(dir, "uv"));
+  const uv = process.platform === "win32" ? "uv.exe" : "uv";
+  await fs.writeFile(path.join(dir, uv), "");
+  assert.equal(findUv([dir], () => undefined), path.join(dir, uv));
   assert.equal(findUv([dir], () => "/somewhere/uv"), "/somewhere/uv");
 });
 

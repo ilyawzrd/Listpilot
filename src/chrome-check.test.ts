@@ -35,7 +35,8 @@ test("checkMain: ready, no access, debugging off", async () => {
 
   assert.equal(await checkMain([empty!, ok!]), "ready");
   assert.equal(await checkMain([empty!]), "debugging-off");
-  if (process.getuid?.() !== 0) assert.equal(await checkMain([empty!, locked!]), "no-access");
+  // Root reads anything, and Windows ignores chmod's read bits.
+  if (process.getuid?.() !== 0 && process.platform !== "win32") assert.equal(await checkMain([empty!, locked!]), "no-access");
   await fs.chmod(path.join(locked!, "DevToolsActivePort"), 0o600);
 });
 
