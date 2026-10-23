@@ -92,7 +92,10 @@ Every research pass covers these, per category:
     and their scores included, with `maps-lists reddit`.
   - **Search snippets** otherwise (reader not set up, or the user said No): at least two
     `site:reddit.com <city> <category>` searches per category, with different angles, plus
-    articles that quote threads. Don't `WebFetch` reddit.com. "No" to the Reddit question only
+    articles that quote threads. Don't `WebFetch` reddit.com. A snippet you rely on goes into the
+  place's `sources` with the thread URL from the search result
+  (`{title: "r/<sub>: <thread title>", url}`), like a thread read in step 1c; a place whose
+  details mention Reddit has a Reddit source. "No" to the Reddit question only
     means no threads: Reddit snippets are never skipped, in a quick pass too, and they are often
     the second source a place needs in step 2.
 - **Telegram channels**, for every city: find local food and city channels with
@@ -245,7 +248,10 @@ Every research pass covers these, per category:
      ends up in `places[]` or in `excluded[]` with its reason. Before step 3, check the city's
      famous names for the category against both lists, and add any that's missing.
 3. **Write the research file** `research/<slug>-<YYYYMMDD>.json` in the data folder, with the slug from
-   city + category, e.g. `research/lisbon-bakeries-20261018.json` (always ASCII). Schema:
+   city + category, e.g. `research/lisbon-bakeries-20261018.json` (always ASCII). If that name
+   is taken (the same research earlier the same day), use `-2`, then `-3`…
+   (`research/lisbon-bakeries-20261018-2.json`); check with `ls` first, never overwrite, and say
+   nothing about it. Schema:
    `ResearchSchema` in `${CLAUDE_PLUGIN_ROOT}/src/review.ts`; samples: `${CLAUDE_PLUGIN_ROOT}/examples/research.example.json`,
    `${CLAUDE_PLUGIN_ROOT}/examples/research.example.ru.json`.
    - `lang`: the conversation language's tag (`ru`, `es`, `ca`…); leave it out for English. It
@@ -310,7 +316,8 @@ Every research pass covers these, per category:
 
 ## Rules
 
-- Keep internals out of replies: no commands, file names, backups, validation results or exit
+- Keep internals out of replies: no commands, file names, refused or retried writes, backups,
+  validation results or exit
   codes. The user sees the summaries, the questions and anything they need to act on.
 - Never invent a place. Every entry in the JSON has a source. After deep research, take places
   only from its report or from the threads step 1c read, never from memory.
