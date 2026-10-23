@@ -316,8 +316,9 @@ that language (or add `--lang es` / `--lang ru`).
 ## Releasing
 
 Users only get an update when `version` in `.claude-plugin/plugin.json` goes up; commits without a
-bump don't reach them. To release: run `npm run ui-check -- --cdp auto` (all ✓), bump `version` (and
-`package.json` to match), commit, push to `master`, and check that the CI run on GitHub is green. Users with auto-update on get it within a few minutes of their next session, and it loads
+bump don't reach them. To release: bump `version` (and `package.json` to match), commit, push to `master`, and check that
+the CI run on GitHub is green. When the release touches `src/selectors.ts`, `src/maps.ts` or
+`src/run.ts`, run `npm run ui-check -- --cdp auto` first (all ✓); otherwise once a month is enough. Users with auto-update on get it within a few minutes of their next session, and it loads
 on the next start or `/reload-plugins`. Others run `/plugin marketplace update maps-lists`.
 
 ## Guarantees
