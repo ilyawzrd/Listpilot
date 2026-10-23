@@ -78,9 +78,14 @@ to leave the classics out.
 
 When it's done, a **review page** opens in your browser:
 
-- Tick the places you want and edit their notes. The note is what shows up in Maps.
-- Click a place to see why it was picked, what to order and where it was mentioned.
-- Places that were filtered out are at the bottom, with the reason, in case you want some back.
+- Everything starts ticked: untick what you don't want (the name is struck through) and edit any
+  note. The note is what shows up in Maps; **Undo your edit** brings back Claude's.
+- **Why it's here** under a place shows why it was picked, what to order and where it was mentioned.
+- Each category folds open and closed and shows how many you kept; **Jump to** on the side (at the
+  top on a phone) takes you between them.
+- **Left out**, at the end, lists the places Claude filtered out with the reason (tourist trap,
+  viral, closed…), in case you want some back.
+- Nothing is saved yet. **Stop, don't save** ends it there.
 
 Press **Continue**. Claude looks every place up on Google Maps, shows what it found, and asks
 **Save to Maps** or **Stop**. Chrome then asks you to **Allow** the connection. Click it, and Claude
