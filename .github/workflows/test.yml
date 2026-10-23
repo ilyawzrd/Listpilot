@@ -1,0 +1,70 @@
+# On every push and pull request: typecheck + unit tests on macOS, Linux and Windows, then a smoke
+# run of what a new user's first minute needs, without a Google sign-in (bin/maps-lists under each
+# OS's bash, finding Chrome, the separate Chrome profile, a CDP connection, one Maps place page).
+# The hooks tests (npm run test:hooks) need the claude CLI and stay local.
+name: test
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash # Git Bash on Windows, Claude Code's shell there
+    env:
+      CDP_PORT: "9333"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Start a display (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          Xvfb :99 -screen 0 1280x1024x24 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: bin/maps-lists runs and finds Chrome
+        run: |
+          bin/maps-lists home
+          bin/maps-lists check-plan examples/plan.example.json
+          out=$(bin/maps-lists check-chrome --set separate)
+          echo "$out"
+          [[ $out == *'"status":"not-running"'* ]]
+
+      - name: maps-lists chrome starts the separate profile
+        run: |
+          bin/maps-lists chrome
+          for i in $(seq 30); do
+            out=$(bin/maps-lists check-chrome)
+            [[ $out == *'"status":"ready"'* ]] && { echo "$out"; exit 0; }
+            sleep 1
+          done
+          echo "$out"; exit 1
+
+      - name: Connect and open a Maps place page
+        run: npx tsx scripts/ci-smoke.ts
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ matrix.os }}
+          path: ci-smoke-fail.png
+          if-no-files-found: ignore
