@@ -8,7 +8,7 @@ plan.*.json
 !examples/plan.example.json
 
 # Research reports and places files from the maps-lists:research skill
-research/
+/research/
 # Written by the deep-research skill that maps-lists:research uses by default
 research_notes/
 reports/

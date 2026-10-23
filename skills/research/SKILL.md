@@ -37,8 +37,14 @@ stop). Without one, give the link and stop.
 - **What:** one or more categories (eat, drink, coffee, bakeries, natural wine, brunch…).
 - **Where:** a city or neighbourhood. If it's missing, ask with `AskUserQuestion`. Beyond that, ask
   only step 0's depth and model.
-- **Optional list name** (quoted): otherwise make one up, short and at most 40 characters
-  (`MAX_LIST_NAME` in `${CLAUDE_PLUGIN_ROOT}/src/plan.ts`), e.g. "Lisbon Bakeries" or "Tokyo Eat & Drink".
+- **Optional list name:** quoted (`"Lisbon Bakeries"`), or said in words at the end of the request:
+  `list <name>`, `in the list <name>`, `to the list <name>`, `called <name>`, `name it <name>`
+  ("bakeries in SF, list zz-sf"; "restaurants in San Francisco, put them in the list San Francisco").
+  Take the words after it up to the next flag, trim them, and cut to 40 characters
+  (`MAX_LIST_NAME` in `${CLAUDE_PLUGIN_ROOT}/src/plan.ts`). "list" with no name after it ("make me a
+  list of coffee in Lisbon") is not a name. Name before the word ("put them in my San Francisco
+  list"): add a question to step 0's card with your guess ("San Francisco") first, the same way as
+  the gems question below. Nothing said: make one up, short, e.g. "Lisbon Bakeries" or "Tokyo Eat & Drink".
 - **Depth, optional:** `--quick` (or "quick", "fast" in the request) does one research pass
   yourself (step 1b); `--deep` (or "deep", "thorough") runs `deep-research` (step 1). Not given →
   step 0 asks.
@@ -86,6 +92,9 @@ Every research pass covers these, per category:
 - **Local press and guides:** city food publications, local food bloggers, Eater /
   The Infatuation / Time Out where they exist, Michelin Bib Gourmand. Local-language sources
   count (search in the local language too).
+- **Michelin Guide status:** for each pick, whether the Michelin Guide lists it: stars (1 to 3),
+  Bib Gourmand, or Selected, and the year. Read it from guide.michelin.com or a current-year
+  article that cites it, not from memory (stars change every year). Not found → say nothing.
 - **Reddit:** local subreddit first (r/lisbon, r/portugal), then r/travel, r/solotravel,
   r/<country>travel. Vary angles: "locals", "hidden gem", "avoid", "overrated", "tourist trap",
   "went downhill", this year. Upvotes, "I live here" and specificity (dish, street, price) raise a
@@ -193,7 +202,9 @@ Every research pass covers these, per category:
    - The output needed: for each recommended place, its name, the area or street that pins it
      down, why it's recommended, what to order or when to go, caveats and source links. Also a
      separate list of places to skip, with reasons (trap, viral, closed), the famous names with
-     their current local verdict, and a sources list.
+     their current local verdict, and a sources list. For each recommended place also its Michelin
+     Guide status (stars, Bib Gourmand or Selected, with the year and the guide.michelin.com or
+     article link), or "none found".
    - The criteria from step 2 below, so its report already flags what step 2 will drop.
 
    Tell it to write the report to `~/.maps-lists/reports/<title>.md` and its notes to
@@ -284,7 +295,13 @@ Every research pass covers these, per category:
        when no source singles out one branch.
      - `note`: the text that goes to Maps. Use the **note style** of `maps-lists:import`: plain
        text, no name, city or address, only concrete info (what to order, when to go, book ahead,
-       closing day), one or two sentences, no sources or ranks.
+       closing day), one or two sentences, no sources or ranks. One exception: when a source from
+       this run puts the place in the Michelin Guide, end the note with that fact in plain words,
+       translated like the rest: "Michelin star (2025).", "Two Michelin stars (2025).",
+       "Michelin Bib Gourmand (2025).", "In the Michelin Guide (2025)." The year comes from the
+       source (leave it out if the source gives none). It's a fact about the place, not a source
+       marker or a rank. Never add it from memory; unsure → leave it out. Put the Michelin link in
+       `sources`.
      - `details`: what the user reads on the review page. Why it's in, who recommends it, what to
        order, caveats (lines, prices, laptop rules, hours). Two to four sentences of plain text;
        `[text](url)` links are fine. Blank lines separate paragraphs.
