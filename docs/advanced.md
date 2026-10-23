@@ -92,6 +92,7 @@ You need to be signed in to reddit.com in your browser. Claude reaches it only t
 `maps-lists reddit`, which can search and read and nothing else (rdt itself can also vote and
 comment). No (or no account) means snippets, and it doesn't ask again (`maps-lists reddit on` brings the
 question back). The login is stored in `~/.config/rdt-cli/`; `rdt logout` removes it.
+Reddit's terms don't allow automated reading, and this uses your own login, so you use it at your own risk.
 
 ### Adding places you name
 

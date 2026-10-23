@@ -143,7 +143,8 @@ a week if you closed a session midway.
 - The first research asks whether you have a Reddit account. You don't need one: without it,
   Claude still sees Reddit through search results. With one (signed in at reddit.com in your
   browser), it installs a small Reddit reader and reads whole threads (on a Mac, macOS asks once to allow
-  "Chrome Safe Storage"). Either way it only reads Reddit, never posts or votes.
+  "Chrome Safe Storage"). Either way it only reads Reddit, never posts or votes. Reddit's terms don't
+  allow automated reading, so with a login you use it at your own risk.
 
 ## If something goes wrong
 

@@ -152,8 +152,10 @@ Every research pass covers these, per category:
      It prints one JSON line. If `ready` or `off` is true, ask nothing about Reddit. Otherwise
      add a question to the same card, header `Reddit`, asked as whether the user has a Reddit
      account, since reading threads needs one: «Do you have a Reddit account? With one, the
-     research can read whole Reddit threads.» (in Russian: «У вас есть аккаунт Reddit? С ним
-     исследование сможет читать треды Reddit целиком.»). Options, in this order, neither marked
+     research can read whole Reddit threads. Reddit's terms don't allow automated reading; this
+     uses your own login, at your own risk.» (in Russian: «У вас есть аккаунт Reddit? С ним
+     исследование сможет читать треды Reddit целиком. Условия Reddit не разрешают автоматическое
+     чтение; это использует ваш вход, на ваш риск.»). Options, in this order, neither marked
      Recommended: **No, skip Reddit threads**: Reddit only through search results, as before;
      won't ask again / **Yes, read threads**: "For when you're signed in at reddit.com in your
      browser: installs a small Reddit reader once (about 50 MB) and reads whole threads with
