@@ -90,8 +90,11 @@ Every research pass covers these, per category:
   comment's weight. Reddit blocks `WebFetch` and anonymous reads, so there are two ways in:
   - **Threads**, when the Reddit reader is ready (step 0): step 1c reads whole threads, comments
     and their scores included, with `maps-lists reddit`.
-  - **Search snippets** otherwise: `site:reddit.com <city> <category>`, plus articles that quote
-    threads. Don't `WebFetch` reddit.com.
+  - **Search snippets** otherwise (reader not set up, or the user said No): at least two
+    `site:reddit.com <city> <category>` searches per category, with different angles, plus
+    articles that quote threads. Don't `WebFetch` reddit.com. "No" to the Reddit question only
+    means no threads: Reddit snippets are never skipped, in a quick pass too, and they are often
+    the second source a place needs in step 2.
 - **Telegram channels**, for every city: find local food and city channels with
   `site:t.me <city> <category>` (and the same in the local language), then read recent posts
   through the public web preview `https://t.me/s/<channel>` with `WebFetch` (no login). If a
@@ -193,7 +196,8 @@ Every research pass covers these, per category:
    search the city's famous names for the category on purpose ("best <category> <city>", the
    classics every guide lists) with what locals say about them now. With `--more-gems` or
    `--gems`, add the lesser-known searches from step 1's brief. With the Reddit reader ready,
-   leave Reddit to step 1c.
+   leave Reddit to step 1c; otherwise the Reddit snippet searches from "Sources" are part of this
+   pass (a quick pass is fewer searches, not fewer sources).
 
    **1c. Reddit threads (only when the Reddit reader is ready).** After step 1 or 1b, per
    category, with Bash:
@@ -266,7 +270,8 @@ Every research pass covers these, per category:
        order, caveats (lines, prices, laptop rules, hours). Two to four sentences of plain text;
        `[text](url)` links are fine. Blank lines separate paragraphs.
      - `sources`: `[{title, url}]`, the links behind the pick.
-   - `excluded[]`: what step 2 dropped, each with the same fields plus `reason`
+   - `excluded[]`: what step 2 dropped, one entry per place (never several names in one), each
+     with the same fields plus `reason`
      (`trap: …`, `viral: …`, `closed: …`, `thin evidence: …`, or `classic: …` with `--gems`, one
      line). Leave `note` empty.
    - Say once, in a `details` or a `reason`, when Reddit or Telegram evidence comes only from
