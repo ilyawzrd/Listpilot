@@ -5,6 +5,10 @@ saves them to a Google Maps list in your own Chrome, with a short note for each 
 
 **Describe** what you want → **Review** the suggestions → **Saved** to your Maps list
 
+![Describing places to eat and drink in Taipei, reviewing the suggestions, and the saved Google Maps list with notes](docs/maps-lists-demo.gif)
+
+*A full run for "places to eat and drink in Taipei": research sped up, then the review page, then the places saved to a Google Maps list with notes.*
+
 ## What you need
 
 - A Mac, Windows or Linux computer with [Google Chrome](https://www.google.com/chrome/) installed. It doesn't have to be your default
