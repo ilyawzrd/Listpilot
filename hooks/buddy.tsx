@@ -207,7 +207,8 @@ export const register: Register = on => {
     const span = room * 2 || 1
     const pos = f % span
     const x = pos <= room ? pos : span - pos // there and back
-    // On the review page Clawd waits rather than walks, map fully drawn.
+    // On the review page Clawd waits rather than walks, map fully drawn. Every Text is `mono`: the
+    // desktop app draws text proportionally, which pulls the block art apart.
     const waiting = p === 'review'
     const legs = waiting ? LEGS[0]! : LEGS[f % 2]!
     const pad = ' '.repeat(waiting ? 0 : x)
@@ -215,7 +216,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           {[...SMALL, legs].map((line, i) => (
-            <Text key={`l${i}`} color="claude" wrap="truncate">{pad}{line}</Text>
+            <Text mono key={`l${i}`} color="claude" wrap="truncate">{pad}{line}</Text>
           ))}
         </Box>
       )
@@ -227,10 +228,10 @@ export const register: Register = on => {
           const [left, right] = mapRow(MAP[i]!, shown)
           return (
             <Box key={`l${i}`} flexDirection="row">
-              <Text color="claude" wrap="truncate">{pad}{body}</Text>
-              <Text color="warning" wrap="truncate">{left}</Text>
-              {right !== undefined && <Text color="error" bold>✕</Text>}
-              {right !== undefined && <Text color="warning" wrap="truncate">{right}</Text>}
+              <Text mono color="claude" wrap="truncate">{pad}{body}</Text>
+              <Text mono color="warning" wrap="truncate">{left}</Text>
+              {right !== undefined && <Text mono color="error" bold>✕</Text>}
+              {right !== undefined && <Text mono color="warning" wrap="truncate">{right}</Text>}
             </Box>
           )
         })}

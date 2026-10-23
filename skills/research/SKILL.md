@@ -133,9 +133,10 @@ Every research pass covers these, per category:
      research can read whole Reddit threads.» (in Russian: «У вас есть аккаунт Reddit? С ним
      исследование сможет читать треды Reddit целиком.»). Options, in this order, neither marked
      Recommended: **No, skip Reddit threads**: Reddit only through search results, as before;
-     won't ask again / **Yes, read threads**: you're signed in at reddit.com in your browser;
-     installs a small Reddit reader once (about 50 MB) and reads whole threads with their upvotes
-     through your login. (In Russian: **Нет, без тредов Reddit** / **Да, читать треды**,
+     won't ask again / **Yes, read threads**: "For when you're signed in at reddit.com in your
+     browser: installs a small Reddit reader once (about 50 MB) and reads whole threads with
+     their upvotes through your login." Keep "For when", so it reads as the condition, not a
+     statement about the user. (In Russian: **Нет, без тредов Reddit** / **Да, читать треды**,
      descriptions translated.) Leave out "installs…" when `installed` is already true.
      - **Yes:** if `installed` is false, run `maps-lists reddit setup` (`timeout:
        600000`). Then say in one line: «macOS will ask whether **rdt** may use **Chrome Safe
