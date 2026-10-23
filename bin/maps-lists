@@ -3,7 +3,7 @@
 # research/, artifacts/, plan.json and .gmaps-state.json always land in one place, wherever Claude
 # was started. Bash on macOS and Linux, Git Bash on Windows (Claude Code's shell there).
 #
-#   maps-lists dry|apply|resolve|review|clean|probe|lists|report|check-plan|check-chrome|chrome|reddit [args…]
+#   maps-lists dry|apply|resolve|review|clean|probe|lists|ui-check|report|check-plan|check-chrome|chrome|reddit [args…]
 #   MAPS_LISTS_HOME=/some/dir maps-lists …   # default ~/.maps-lists
 set -euo pipefail
 ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
@@ -52,11 +52,11 @@ cmd="${1:-}"; shift || true
 case "$cmd" in
   dry)        exec "$tsx" "$ROOT/src/run.ts" --dry-run "$@" ;;
   apply)      exec "$tsx" "$ROOT/src/run.ts" "$@" ;;
-  resolve|review|clean|probe|lists) exec "$tsx" "$ROOT/src/$cmd.ts" "$@" ;;
+  resolve|review|clean|probe|lists|ui-check) exec "$tsx" "$ROOT/src/$cmd.ts" "$@" ;;
   report)     exec "$tsx" "$ROOT/src/report-md.ts" "$@" ;;
   check-chrome) exec "$tsx" "$ROOT/src/chrome-check.ts" "$@" ;;
   check-plan) exec "$tsx" "$ROOT/src/plan.ts" --check "${1:-plan.json}" ;;
   chrome)     exec "$tsx" "$ROOT/src/launch-chrome.ts" "$@" ;;
   home)       echo "$HOME_DIR" ;;
-  *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|lists|report|check-plan|check-chrome|chrome|reddit|home [args…]" >&2; exit 64 ;;
+  *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|lists|ui-check|report|check-plan|check-chrome|chrome|reddit|home [args…]" >&2; exit 64 ;;
 esac

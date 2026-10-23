@@ -62,8 +62,8 @@ export const TEXT: Record<Locale, Text> = {
     rowClosed: /^button "(.+) (?:Permanently|Temporarily) closed"$/,
     rowDelete: /^button "Delete"$/,
   },
-  // Probe with hl=es (Oct 2026) verified the rest. Still best guesses, because the probe never saw them:
-  // signIn, permanentlyClosed / rowClosed (closed place), save's "Guardado (N)" (an already-saved place).
+  // Probe with hl=es (Oct 2026) verified the rest; ui-check (Oct 2026) saw signIn and permanentlyClosed.
+  // Still best guesses: rowClosed (a closed place's list row), save's "Guardado (N)" (an already-saved place).
   // An apply with hl=es (create, save, "Añadir nota", icon, hard-reload verify) passed end to end.
   // Never click "Borrar icono" (= Clear icon).
   es: {
@@ -96,8 +96,8 @@ export const TEXT: Record<Locale, Text> = {
     rowClosed: /^button "(.+) Cerrad[oa] (?:permanentemente|temporalmente)"$/,
     rowDelete: /^button "Eliminar"$/, // unverified
   },
-  // Probe with hl=ru (Oct 2026) verified the rest. Still best guesses, because the probe never saw them:
-  // signIn, permanentlyClosed / rowClosed (closed place), save's "Сохранено (N)" (an already-saved place).
+  // Probe with hl=ru (Oct 2026) verified the rest; ui-check (Oct 2026) saw signIn and permanentlyClosed.
+  // Still best guesses: rowClosed (a closed place's list row), save's "Сохранено (N)" (an already-saved place).
   // An apply with hl=ru (create, save, "Добавить примечание", icon, hard-reload verify) passed end to end.
   // Never click "Удалить" (row) or "Удалить значок" (= Clear icon).
   ru: {

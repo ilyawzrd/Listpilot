@@ -1,12 +1,17 @@
 # On every push and pull request: typecheck + unit tests on macOS, Linux and Windows, then a smoke
 # run of what a new user's first minute needs, without a Google sign-in (bin/maps-lists under each
-# OS's bash, finding Chrome, the separate Chrome profile, a CDP connection, one Maps place page).
-# The hooks tests (npm run test:hooks) need the claude CLI and stay local.
+# OS's bash, finding Chrome, the separate Chrome profile, a CDP connection, then ui-check's
+# signed-out steps: a place page with its Save button, and a closed place recognised as closed).
+# Weekly too, so a Maps change shows up between pushes. The signed-in steps need the maintainer's
+# account: `maps-lists ui-check --cdp auto` before each release. The hooks tests (npm run
+# test:hooks) need the claude CLI and stay local.
 name: test
 
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -59,12 +64,12 @@ jobs:
           done
           echo "$out"; exit 1
 
-      - name: Connect and open a Maps place page
-        run: npx tsx scripts/ci-smoke.ts
+      - name: Maps UI check, signed out
+        run: bin/maps-lists ui-check --signed-out
 
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-${{ matrix.os }}
-          path: ci-smoke-fail.png
+          name: ui-check-${{ matrix.os }}
+          path: ~/.maps-lists/ui-check/
           if-no-files-found: ignore

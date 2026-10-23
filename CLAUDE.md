@@ -26,6 +26,7 @@ for the rest of that turn only, so a new user prompt goes back to the session mo
 - `src/selectors.ts`: **every** Maps UI hook. Roles, aria-labels and names only, never CSS classes. Per-language name tables (`TEXT.en`, `TEXT.es`, `TEXT.ru`), picked by `setLocale`
 - `src/maps.ts`: page operations: openPlace, isInList, saveToList, createListWithPlace, openList, readList, writeNote, setListIcon, hardReload
 - `src/run.ts`: orchestration. `apply` opens each place once, resolving and saving it in the same visit, then does icon + notes in one list-view pass, then hard reload and verify. `--dry-run` resolves everything and reads each place's Save-dialog checkbox (exact for chain branches). Writes `artifacts/report.json`, exit code 2 on verify failure; `artifacts/progress.json` (`{step, list, done, total, current, at}`) while it runs, for anything showing progress
+- `src/ui-check.ts`: `maps-lists ui-check [--cdp auto] [--lang en|es|ru]`. Has Maps changed? Read-only walk of what apply does, through the executor's own functions and selectors: signed in, place page + Save, Save dialog (fixture list ticked), a permanently closed place (Fragments, Rue des Tournelles), ☰ → Saved → list view, rows + notes, icon button; ✓/✗/– per step. Fixture list `zz-ui-check` (2 Tartine places, one with a note) made once by `--setup` (through apply). Each passing step's ARIA snapshot → `ui-check/<hl>/<step>.yaml` (account lines scrubbed, gitignored); a failing one prints `snapshotDiff` against it (− label gone, + new). `--signed-out` (CI) runs only place page + closed place. Exit 0 / 1 failed / 2 fixture missing. Run before each release; with `--lang es|ru` after touching `TEXT.es|ru`
 - `src/probe.ts`: read-only calibration that dumps ARIA snapshots (incl. the New-list form peek, `aria-2b-new-list-form.yaml`) and `rows.json` to `artifacts/`
 - `src/resolve.ts`: `npm run resolve [-- --lang <any tag>]`. Chrome-free place lookup (see "Resolving places without Chrome"); prints candidates, writes `artifacts/resolve.json`
 - `src/review.ts`: `npm run review -- research/<slug>.json`. `ResearchSchema` (zod; samples `examples/research.example.json`, `.ru.json`; `lang`: any BCP 47 tag; en/ru use the built-in `UI` tables, any other uses Claude's translated `ui` labels over English, Continue per `Intl.PluralRules` category) + a review page served on 127.0.0.1 with a random token: checkbox + editable note per place, details on click, filtered-out places collapsed and unticked. Continue writes `<slug>.places.md` and the choices back into the JSON. Exit 0 submitted · 1 invalid · 2 cancelled · 3 still waiting (`--wait`, re-run with `--resume`: same port/token, page reconnects) · 4 no heartbeat (`--idle`). `--check` validates only
@@ -42,7 +43,7 @@ for the rest of that turn only, so a new user prompt goes back to the session mo
 - `skills/import/SKILL.md`: Sonnet. Places the user names in their own message = direct add: no review page, ambiguous names asked via `AskUserQuestion` (never guessed), hand-off with `--apply` (run skips the Apply / Dry run question). A file (`.md`; `.txt`/PDF/HTML/`.eml`/image via Read; Word/RTF/ODT via `textutil`; anything but `.md` first saved as `research/<slug>-<date>.source.md`) or pasted text → review page (`research/<slug>.json`; skipped for a `*.places.md`) → resolved `plan.json` + `artifacts/plan-summary.md` → run. Sample input: `examples/places.example.md`
 - `skills/run/SKILL.md`: Haiku. Shows the summary, asks Save to Maps / Stop (no dry run offered; only on request; `--apply`/`--yes` skip the question), checks Chrome, runs, reports from `report.json`, cleans up after a verified apply. `--report` only reads the last report. Chrome step starts with `check-chrome`: no access in a terminal → Full Disk Access pane (`x-apple.systempreferences:…?Privacy_AllFiles`) + Cmd-Q; in the desktop app → separate window recommended (remembered), or the inner copy's path, or Terminal
 - `skills/lists/SKILL.md`: Haiku. `maps-lists lists` → table with Maps links, or one list's places merged across its places files; open the folder, copy to Downloads, hand off to research/import to add
-- `.github/workflows/test.yml`: CI on every push, macOS + Linux (Xvfb) + Windows (Git Bash): typecheck, `npm test`, then a signed-out smoke run (`bin/maps-lists check-plan`/`check-chrome`, `maps-lists chrome`, `scripts/ci-smoke.ts`: `connect` + `openPlace` on Tartine Bakery + Save button). The only real Windows run we have. `test:hooks` stays local (needs the `claude` CLI)
+- `.github/workflows/test.yml`: CI on every push, macOS + Linux (Xvfb) + Windows (Git Bash): typecheck, `npm test`, then a signed-out smoke run (`bin/maps-lists check-plan`/`check-chrome`, `maps-lists chrome`, `ui-check --signed-out`: place page + Save button, closed place). Also weekly (Mondays), to catch Maps changes between pushes. The only real Windows run we have. `test:hooks` stays local (needs the `claude` CLI)
 - `README.md` is for non-technical users (plugin install, asking Claude, troubleshooting). Commands, flags and internals go in `docs/advanced.md`
 
 ## Commands
@@ -53,6 +54,7 @@ npm run resolve -- queries.txt | --query '<name city>'                  # no Chr
 npm run review -- research/<slug>.json [--resume] [--no-open] | --check  # review page → research/<slug>.places.md
 npm run clean [-- --dry-run]                                             # keep only research/*.places.md + state
 npm run probe -- '<maps place url>' '<existing list name>' --cdp auto   # read-only
+npm run ui-check -- --cdp auto [--lang es|ru] [--setup]                  # has Maps changed? read-only (--setup: make zz-ui-check once)
 npm run dry   -- plan.json --cdp auto                                    # resolves + reads, writes nothing
 npm run apply -- plan.json --cdp auto                                    # writes, then verifies
 npm run chrome                                                           # dedicated Chrome profile on 9333 (src/launch-chrome.ts)
@@ -79,9 +81,9 @@ npm test                                                                 # pure 
 - Node + npm, not pnpm. Maps UI language: `--lang auto` (default) opens Maps without `hl` and reads
   `<html lang>` (follows the account). `es*` → `TEXT.es`, `ru*` → `TEXT.ru`, each with that exact tag as `hl`; anything else → `TEXT.en`
   with `hl=en`. `TEXT.es` was probed and passed an apply under `hl=es`
-  (Oct 2026). Still unseen: closed-place text, "Guardado (N)", sign-in link. The emoji picker stays English.
-  `TEXT.ru` was probed and passed an apply under `hl=ru` (Oct 2026). Still unseen: closed-place text,
-  "Сохранено (N)", sign-in link. Clear icon is "Удалить значок".
+  (Oct 2026). Closed-place text and sign-in link seen by `ui-check`; still unseen: a closed row in a list, "Guardado (N)". The emoji picker stays English.
+  `TEXT.ru` was probed and passed an apply under `hl=ru` (Oct 2026). Closed-place text and sign-in link seen by `ui-check`;
+  still unseen: a closed row in a list, "Сохранено (N)". Clear icon is "Удалить значок".
 
 ## How the Maps UI behaves (from probe snapshots, Oct 2026)
 

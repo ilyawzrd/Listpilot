@@ -19,3 +19,6 @@ reports/
 # Compiled output, in case you ever add a build step
 dist/
 *.tsbuildinfo
+
+# ui-check baselines (ARIA snapshots of your Maps, account lines removed)
+ui-check/

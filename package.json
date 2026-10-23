@@ -11,6 +11,7 @@
     "apply": "tsx src/run.ts",
     "dry": "tsx src/run.ts --dry-run",
     "probe": "tsx src/probe.ts",
+    "ui-check": "tsx src/ui-check.ts",
     "resolve": "tsx src/resolve.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/*.test.ts",

@@ -285,6 +285,20 @@ Output: a console summary plus `artifacts/report.json`. The exit code is `2` if 
 found missing places or notes. A tab that loads about 70 Maps places gets its renderer killed
 ("Page crashed"), so `apply` opens a fresh tab every 25 places.
 
+## Check for Maps UI changes
+
+`ui-check` walks what `apply` does, read-only, with the executor's own code and selectors, and
+reports each step:
+
+```bash
+npm run ui-check -- --cdp auto --setup     # once: creates the throwaway list zz-ui-check (2 places)
+npm run ui-check -- --cdp auto             # ✓/✗ per step; add --lang es or --lang ru for those tables
+```
+
+A step that fails prints which accessible names disappeared (−) or appeared (+) since its last pass,
+which is usually the label Google renamed. Fix that in `src/selectors.ts`, or probe (below) for the
+full picture. Snapshots live in `ui-check/<language>/`, with the account button removed.
+
 ## Calibrate selectors (whenever Maps changes)
 
 The selectors in `src/selectors.ts` match live snapshots (see `CLAUDE.md`). If Maps changes its UI,
@@ -302,8 +316,8 @@ that language (or add `--lang es` / `--lang ru`).
 ## Releasing
 
 Users only get an update when `version` in `.claude-plugin/plugin.json` goes up; commits without a
-bump don't reach them. To release: bump `version` (and `package.json` to match), commit, push to
-`master`. Users with auto-update on get it within a few minutes of their next session, and it loads
+bump don't reach them. To release: run `npm run ui-check -- --cdp auto` (all ✓), bump `version` (and
+`package.json` to match), commit, push to `master`, and check that the CI run on GitHub is green. Users with auto-update on get it within a few minutes of their next session, and it loads
 on the next start or `/reload-plugins`. Others run `/plugin marketplace update maps-lists`.
 
 ## Guarantees
