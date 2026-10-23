@@ -114,6 +114,11 @@ Every research pass covers these, per category:
   and Telegram as a primary source. Reddit (r/moscow, r/russia, r/AskARussian, r/Kazakhstan…) is
   secondary there. Same filter rules, in Russian too: «туристическое место», «переоценено»,
   «испортилось», «хайповое», «из тиктока».
+- **Region-specific sources** (Japan, Korea, China, Hong Kong, Thailand, Singapore, France, Italy,
+  Spain, the Nordics, Turkey, Latin America): read
+  `${CLAUDE_PLUGIN_ROOT}/skills/research/sources-by-region.md` and use the city's row on top of
+  everything above, never instead of it. Any credible local source you find beyond the row counts
+  too. Other regions use the sources above only.
 
 ## Flow
 
@@ -170,7 +175,8 @@ Every research pass covers these, per category:
      don't see this file): local press and guides (including local-language ones); Reddit (its
      agents can't load Reddit, so `site:reddit.com` search snippets and articles that quote
      threads; when the Reddit reader is ready you read the threads yourself in step 1c); Telegram channels via `t.me/s/<channel>`; for a Russian-speaking city, the Russian
-     sources; the city's famous names for the category (the institutions every guide lists),
+     sources; the city's row from `sources-by-region.md`, copied in full (with how to read each
+     platform), marked as additions to the other angles, not a limit; the city's famous names for the category (the institutions every guide lists),
      each with what locals and local press say about it *now*; places that are viral on TikTok or
      Instagram, or tourist traps; closures, moves and ownership changes in the current and
      previous year.
