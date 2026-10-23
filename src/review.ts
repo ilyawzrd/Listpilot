@@ -1,4 +1,3 @@
-import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import http from "node:http";
@@ -7,6 +6,7 @@ import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { ARTIFACTS } from "./maps.js";
 import { MAX_LIST_NAME } from "./plan.js";
+import { openInDefault } from "./platform.js";
 
 /**
  * Review page for a maps-lists:research result. Serves research/<slug>.json on 127.0.0.1 as a page
@@ -491,7 +491,7 @@ async function main() {
       await fs.writeFile(sessionFile, JSON.stringify(session));
       const url = `http://127.0.0.1:${port}/?t=${session.token}`;
       console.log(`Review page: ${url}`);
-      if (!values.resume && !values["no-open"] && process.platform === "darwin") execFile("open", [url]);
+      if (!values.resume && !values["no-open"]) openInDefault(url);
     },
   });
 

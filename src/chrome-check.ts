@@ -1,11 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
 import { CANDIDATE_DIRS } from "./connect.js";
+import { type Chrome, findChrome, isEverydayChrome, processLines } from "./platform.js";
 
 /**
  * Can the executor reach Chrome, and if not, why? Prints one JSON line for maps-lists:run. Reads
@@ -14,8 +13,8 @@ import { CANDIDATE_DIRS } from "./connect.js";
  *   maps-lists check-chrome                   # status for the remembered mode (default: main)
  *   maps-lists check-chrome --set separate    # remember the mode in config.json, then check
  *
- * Modes: "main" = the user's own Chrome via the chrome://inspect toggle (--cdp auto, needs Full Disk
- * Access for whatever macOS holds responsible); "separate" = the dedicated profile from
+ * Modes: "main" = the user's own Chrome via the chrome://inspect toggle (--cdp auto; on macOS needs
+ * Full Disk Access for whatever macOS holds responsible, elsewhere nothing); "separate" = the dedicated profile from
  * `maps-lists chrome` on 127.0.0.1:9333 (HTTP discovery, no Full Disk Access; 9222 is the main
  * Chrome toggle's port).
  */
@@ -64,26 +63,12 @@ function ancestry(): string[] {
   return out;
 }
 
-/** Google Chrome's .app, wherever it's installed; undefined when it isn't. */
-export function findChrome(): string | undefined {
-  const fixed = ["/Applications/Google Chrome.app", path.join(os.homedir(), "Applications", "Google Chrome.app")];
-  const found = fixed.find((p) => existsSync(p));
-  if (found) return found;
-  try {
-    return execFileSync("mdfind", ["kMDItemCFBundleIdentifier == 'com.google.Chrome'"], { encoding: "utf8" })
-      .split("\n").find((p) => p.endsWith(".app"));
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * Is the user's own Chrome running (not the maps-lists profile, which has --user-data-dir)? From
- * `ps -axo args=` lines. Someone whose everyday browser is Safari or Firefox usually has it closed.
+ * full process command lines. Someone whose everyday browser is Safari or Firefox usually has it closed.
  */
-export function everydayChromeRunning(psArgs: string[], chromeApp: string): boolean {
-  const bin = `${chromeApp}/Contents/MacOS/Google Chrome`;
-  return psArgs.some((l) => l.startsWith(bin) && !l.includes("--user-data-dir="));
+export function everydayChromeRunning(lines: string[], chrome: Chrome, platform: NodeJS.Platform = process.platform): boolean {
+  return lines.some((l) => isEverydayChrome(l, platform, chrome));
 }
 
 /** main mode: readable file → ready; EPERM/EACCES anywhere → no-access; no file → debugging-off. */
@@ -133,22 +118,25 @@ async function main() {
   }
   const root = process.cwd();
   const mode = await readMode(root);
-  const chromeApp = findChrome();
-  if (!chromeApp) {
-    console.log(JSON.stringify({ mode, status: "no-chrome" satisfies Status }));
+  const platform = process.platform;
+  const chrome = findChrome();
+  if (!chrome) {
+    console.log(JSON.stringify({ mode, platform, status: "no-chrome" satisfies Status }));
     return;
   }
   const status = mode === "separate" ? await checkSeparate() : await checkMain(CANDIDATE_DIRS);
-  const chromeRunning = everydayChromeRunning(
-    execFileSync("ps", ["-axo", "args="], { encoding: "utf8" }).split("\n"), chromeApp);
-  const host = hostFrom(process.env.CLAUDE_CODE_EXECPATH, ancestry(), process.env.TERM_PROGRAM);
+  const chromeRunning = everydayChromeRunning(processLines(), chrome);
+  // Full Disk Access, and so the host it's checked against, exists only on macOS.
+  const host: Host = platform === "darwin"
+    ? hostFrom(process.env.CLAUDE_CODE_EXECPATH, ancestry(), process.env.TERM_PROGRAM)
+    : { kind: "unknown" };
   // A Claude Code update moves the desktop app's copy, and macOS's grant stays with the old path.
   const { readyApp } = await readConfig(root);
   if (mode === "main" && status === "ready" && host.kind === "desktop" && host.appPath && host.appPath !== readyApp) {
     await updateConfig(root, { readyApp: host.appPath });
   }
   const readyBefore = status === "no-access" && !!readyApp && readyApp !== host.appPath && host.kind === "desktop";
-  console.log(JSON.stringify({ mode, status, host, chromeRunning, ...(readyBefore ? { readyBefore } : {}) }));
+  console.log(JSON.stringify({ mode, platform, status, host, chromeRunning, ...(readyBefore ? { readyBefore } : {}) }));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]!).href) await main();

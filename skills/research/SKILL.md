@@ -24,9 +24,11 @@ Pass data files by these relative names. Pass anything else (the user's `.md`, a
 your scratchpad) as an absolute path.
 
 If a `maps-lists` command fails with `NODE_MISSING`, Node.js 18+ is missing or too old. If the
-message mentions Homebrew, ask with `AskUserQuestion` (header `Node.js`): **Install it now** (run
-`brew install node` with Bash, `timeout: 600000`, then retry the command) / **I'll install it
-myself** (link https://nodejs.org and stop). Without Homebrew, give the link and stop.
+message names an install command (`brew install node` with Homebrew, `winget install
+OpenJS.NodeJS.LTS` on Windows), ask with `AskUserQuestion` (header `Node.js`): **Install it now**
+(run that command with Bash, `timeout: 600000`, then retry; after winget, the user may have to
+restart Claude Code so Node is on PATH) / **I'll install it myself** (link https://nodejs.org and
+stop). Without one, give the link and stop.
 
 ## Input
 
@@ -150,10 +152,11 @@ Every research pass covers these, per category:
      statement about the user. (In Russian: **Нет, без тредов Reddit** / **Да, читать треды**,
      descriptions translated.) Leave out "installs…" when `installed` is already true.
      - **Yes:** if `installed` is false, run `maps-lists reddit setup` (`timeout:
-       600000`). Then say in one line: «macOS will ask whether **rdt** may use **Chrome Safe
-       Storage**: type your Mac password and click **Always Allow**» (in Russian: «macOS спросит,
-       можно ли **rdt** использовать **Chrome Safe Storage**: введите пароль от Mac и нажмите
-       **Всегда разрешать**»), and run `maps-lists reddit login` (`timeout: 120000`). Its JSON
+       600000`). On macOS, then say in one line: «macOS will ask whether **rdt** may use **Chrome
+       Safe Storage**: type your Mac password and click **Always Allow**» (in Russian: «macOS
+       спросит, можно ли **rdt** использовать **Chrome Safe Storage**: введите пароль от Mac и
+       нажмите **Всегда разрешать**»); on Linux, that the system may ask to unlock its keyring.
+       Then run `maps-lists reddit login` (`timeout: 120000`). Its JSON
        line has `loggedIn`. If it's false, the browser isn't signed in to Reddit: say in one line
        that signing in at reddit.com in Chrome and starting the next research again turns threads
        on, and use snippets this time. A failed `setup` → one line, snippets this time.

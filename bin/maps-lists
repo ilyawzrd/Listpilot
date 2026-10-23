@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Plugin entry point for the executor. Runs src/ from the plugin with the data folder as cwd, so
 # research/, artifacts/, plan.json and .gmaps-state.json always land in one place, wherever Claude
-# was started.
+# was started. Bash on macOS and Linux, Git Bash on Windows (Claude Code's shell there).
 #
 #   maps-lists dry|apply|resolve|review|clean|probe|lists|report|check-plan|check-chrome|chrome|reddit [args…]
 #   MAPS_LISTS_HOME=/some/dir maps-lists …   # default ~/.maps-lists
@@ -11,12 +11,14 @@ HOME_DIR="${MAPS_LISTS_HOME:-$HOME/.maps-lists}"
 
 no_node() { # the skills read "NODE_MISSING" and offer to install it
   echo "NODE_MISSING: $1 Install Node 18 or newer from https://nodejs.org" >&2
-  command -v brew >/dev/null && echo "  (Homebrew is installed: brew install node)" >&2
+  if command -v brew >/dev/null; then echo "  (Homebrew is installed: brew install node)" >&2
+  elif command -v winget >/dev/null; then echo "  (winget is installed: winget install OpenJS.NodeJS.LTS)" >&2; fi
   exit 1
 }
 command -v node >/dev/null || no_node "Node.js isn't installed."
 (( $(node -p 'process.versions.node.split(".")[0]') >= 18 )) || no_node "Node $(node -v) is too old."
-if [[ ! -x "$ROOT/node_modules/.bin/tsx" ]]; then
+# -e, not -x: Git Bash on Windows doesn't always report npm's shims as executable.
+if [[ ! -e "$ROOT/node_modules/.bin/tsx" ]]; then
   echo "Installing dependencies (first run)…" >&2
   npm ci --omit=dev --silent --prefix "$ROOT" >&2 || { echo "npm ci failed in $ROOT" >&2; exit 1; }
 fi
@@ -34,7 +36,7 @@ fi
 # never leave it; any other path missing there falls back to the caller's folder (a .md file).
 args=()
 for a in "$@"; do
-  case "$a" in -*|/*|http*|ws:*|plan*.json|research/*|artifacts/*) args+=("$a"); continue ;; esac
+  case "$a" in -*|/*|[A-Za-z]:[\\/]*|http*|ws:*|plan*.json|research/*|artifacts/*) args+=("$a"); continue ;; esac
   if [[ ! -e "$HOME_DIR/$a" && -e "$a" ]]; then a="$PWD/$a"; fi
   args+=("$a")
 done
@@ -54,7 +56,7 @@ case "$cmd" in
   report)     exec "$tsx" "$ROOT/src/report-md.ts" "$@" ;;
   check-chrome) exec "$tsx" "$ROOT/src/chrome-check.ts" "$@" ;;
   check-plan) exec "$tsx" "$ROOT/src/plan.ts" --check "${1:-plan.json}" ;;
-  chrome)     exec bash "$ROOT/scripts/launch-chrome.sh" ;;
+  chrome)     exec "$tsx" "$ROOT/src/launch-chrome.ts" "$@" ;;
   home)       echo "$HOME_DIR" ;;
   *) echo "usage: maps-lists dry|apply|resolve|review|clean|probe|lists|report|check-plan|check-chrome|chrome|reddit|home [args…]" >&2; exit 64 ;;
 esac

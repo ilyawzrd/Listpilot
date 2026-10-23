@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { readConfig, updateConfig } from "./chrome-check.js";
+import { which as whichBin } from "./platform.js";
 
 /**
  * Optional Reddit reader for maps-lists:research, through rdt-cli (pinned) installed with uv. Reddit
@@ -29,17 +30,18 @@ export const RDT_VERSION = "0.4.1";
 
 const UV_DIRS = [path.join(os.homedir(), ".local/bin"), path.join(os.homedir(), ".cargo/bin"), "/opt/homebrew/bin", "/usr/local/bin"];
 
-const onPath = (bin: string) => spawnSync("/bin/sh", ["-c", `command -v ${bin}`], { encoding: "utf8" }).stdout.trim() || undefined;
+const onPath = (bin: string) => whichBin(bin);
+const EXE = process.platform === "win32" ? ".exe" : "";
 
 /** uv on PATH, or where its installers put it (Claude's Bash PATH often lacks ~/.local/bin). */
 export function findUv(dirs = UV_DIRS, which = onPath): string | undefined {
-  return which("uv") ?? dirs.map((d) => path.join(d, "uv")).find((p) => existsSync(p));
+  return which("uv") ?? dirs.map((d) => path.join(d, `uv${EXE}`)).find((p) => existsSync(p));
 }
 
 function rdtBin(uv: string): string | undefined {
   try {
     const dir = execFileSync(uv, ["tool", "dir", "--bin"], { encoding: "utf8" }).trim();
-    const bin = path.join(dir, "rdt");
+    const bin = path.join(dir, `rdt${EXE}`);
     return existsSync(bin) ? bin : undefined;
   } catch {
     return undefined;
@@ -157,7 +159,10 @@ function setup(): number {
     const r = onPath("brew")
       ? spawnSync("brew", ["install", "uv"], { stdio: ["ignore", 2, 2], env: { ...process.env, HOMEBREW_NO_AUTO_UPDATE: "1", HOMEBREW_NO_ENV_HINTS: "1" } })
       // Astral's installer puts uv in ~/.local/bin; UV_NO_MODIFY_PATH leaves shell profiles alone.
-      : spawnSync("/bin/sh", ["-c", "curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh"], { stdio: ["ignore", 2, 2] });
+      : process.platform === "win32"
+        ? spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "ByPass", "-Command", "irm https://astral.sh/uv/install.ps1 | iex"],
+          { stdio: ["ignore", 2, 2], env: { ...process.env, UV_NO_MODIFY_PATH: "1" } })
+        : spawnSync("/bin/sh", ["-c", "curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh"], { stdio: ["ignore", 2, 2] });
     uv = findUv();
     if (r.status !== 0 || !uv) {
       console.error("Couldn't install uv. See https://docs.astral.sh/uv/getting-started/installation/");

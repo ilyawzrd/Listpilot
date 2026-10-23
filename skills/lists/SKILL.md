@@ -63,9 +63,11 @@ Reply in the language the user writes in. Place names and notes stay as the file
    A list with no files: give the Maps link and say its places weren't recorded (it was made
    before places files were kept).
 4. **Follow-ups**, when the user asks:
-   - "Where are the files?" / "open the folder": run `open ~/.maps-lists/research` (Finder; the
-     folder starts with a dot, so it's hidden otherwise) and give the path.
-   - Share or export: `cp` the list's places file(s) to `~/Downloads/` (keep the file name) and
+   - "Where are the files?" / "open the folder": open `~/.maps-lists/research` in the file
+     manager (the folder starts with a dot, so it's hidden otherwise) and give the path: `open
+     ~/.maps-lists/research` on macOS, `xdg-open ~/.maps-lists/research` on Linux, `explorer.exe
+     "$(cygpath -w ~/.maps-lists/research)"` on Windows.
+   - Share or export: `cp` the list's places file(s) to `~/Downloads/` (on Linux without one, the home folder) (keep the file name) and
      give the path.
    - Add places to the list: hand off to `maps-lists:research` (`<what> in <where> "<List name>"`)
      or `maps-lists:import` (`<file.md> "<List name>"`), plus `--lang <tag>` for anything but English. The existing

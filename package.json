@@ -1,13 +1,13 @@
 {
   "name": "maps-lists",
-  "version": "0.3.25",
+  "version": "0.3.26",
   "private": true,
   "license": "MIT",
   "author": "Ilia Litvinenko",
   "type": "module",
   "description": "Builds Google Maps saved lists from research or a .md file: Playwright over CDP, then verifies with a hard reload. Also a Claude Code plugin.",
   "scripts": {
-    "chrome": "bash scripts/launch-chrome.sh",
+    "chrome": "tsx src/launch-chrome.ts",
     "apply": "tsx src/run.ts",
     "dry": "tsx src/run.ts --dry-run",
     "probe": "tsx src/probe.ts",

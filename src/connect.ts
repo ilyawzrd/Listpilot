@@ -1,22 +1,10 @@
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { chromium, type Browser } from "playwright-core";
+import { chromeDataDirs, findActivePortHint } from "./platform.js";
 
-const SUPPORT = path.join(os.homedir(), "Library", "Application Support");
-
-/** User-data folders where a Chromium browser writes DevToolsActivePort (macOS). */
-export const CANDIDATE_DIRS = [
-  process.env.GMAPS_CHROME_DIR, // override: export GMAPS_CHROME_DIR="/path/to/user data dir"
-  path.join(SUPPORT, "Google", "Chrome"),
-  path.join(SUPPORT, "Google", "Chrome Beta"),
-  path.join(SUPPORT, "Google", "Chrome Dev"),
-  path.join(SUPPORT, "Google", "Chrome Canary"),
-  path.join(SUPPORT, "Chromium"),
-  path.join(SUPPORT, "BraveSoftware", "Brave-Browser"),
-  path.join(SUPPORT, "Microsoft Edge"),
-  path.join(SUPPORT, "Arc", "User Data"),
-].filter((d): d is string => !!d);
+/** User-data folders where a Chromium browser writes DevToolsActivePort (GMAPS_CHROME_DIR first). */
+export const CANDIDATE_DIRS = chromeDataDirs();
 
 async function wsFromActivePortFile(): Promise<string> {
   const errors: string[] = [];
@@ -38,7 +26,7 @@ async function wsFromActivePortFile(): Promise<string> {
       ...CANDIDATE_DIRS.map((d) => `  ${d}`),
       ...(errors.length ? ["Read errors (not just 'missing'):", ...errors] : []),
       "Find yours with:",
-      `  find ~/Library/Application\\ Support -maxdepth 4 -name DevToolsActivePort 2>/dev/null`,
+      `  ${findActivePortHint()}`,
       'then: export GMAPS_CHROME_DIR="<the folder containing it>"',
     ].join("\n"),
   );

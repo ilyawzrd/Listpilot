@@ -59,7 +59,7 @@ the signed-in account, so never ask about it.
    - Claude looks each place up on Google Maps and shows what it found.
    - The Maps step needs Chrome's remote debugging switched on
      (`chrome://inspect/#remote-debugging`; Claude opens it if needed) and an **Allow** click in
-     Chrome, plus Full Disk Access for the terminal. Claude walks them through both if needed.
+     Chrome, plus Full Disk Access for the terminal on a Mac. Claude walks them through it if needed.
    - Nothing is saved to the list before they choose Save to Maps.
 5. **Hand off** in the same turn: invoke `maps-lists:research` with
    `<what> in <where> "<List name>"` (in the user's language: `<what> в <where>`, `<what> en <where>`…), plus

@@ -84,7 +84,10 @@ review snippets and Telegram as a primary source.
 Reddit through search snippets. The first research asks whether you have a Reddit account; only
 with one can it read whole threads. Yes installs [rdt-cli](https://github.com/public-clis/rdt-cli) (pinned) with
 [uv](https://docs.astral.sh/uv/), which brings its own Python, about 50 MB once, and signs in with
-your Reddit login from your browser: macOS asks once whether `rdt` may use "Chrome Safe Storage".
+your Reddit login from your browser: macOS asks once whether `rdt` may use "Chrome Safe Storage"
+(Linux may ask to unlock the keyring; on Windows, uv comes from Astral's PowerShell installer, and
+Chrome's newer cookie encryption may keep `rdt login` from finding the login, in which case research
+uses snippets).
 You need to be signed in to reddit.com in your browser. Claude reaches it only through
 `maps-lists reddit`, which can search and read and nothing else (rdt itself can also vote and
 comment). No (or no account) means snippets, and it doesn't ask again (`maps-lists reddit on` brings the
@@ -102,7 +105,7 @@ research still go through the review page.
 
 Give Claude a file (drag it into the terminal) or paste the list. Markdown is read as is; `.txt`,
 PDF, HTML, saved emails and screenshots are read directly, and Word, RTF and ODT files are converted
-with macOS's `textutil`. Anything other than Markdown is first saved as
+with macOS's `textutil` (on Linux and Windows with `pandoc` or LibreOffice, when installed). Anything other than Markdown is first saved as
 `research/<slug>-<date>.source.md` in the data folder, so the rest of the flow is the same. Notes keep
 the source's language unless you ask for a translation.
 
@@ -184,7 +187,18 @@ recommends the separate window below. Chromium browsers (Brave, Edge, Arc) work 
 asks you to **Allow** each connection and shows an "automated test software" banner while one is
 attached. Switch the toggle off when you're done. The executor finds the connection details in
 Chrome's `DevToolsActivePort` file (also for Chrome Beta/Canary, Brave, Edge and Arc; set
-`GMAPS_CHROME_DIR` if yours is elsewhere).
+`GMAPS_CHROME_DIR` if yours is elsewhere). It looks in Chrome's user-data folder for your system
+(`src/platform.ts`):
+
+| System | Chrome's folder |
+|---|---|
+| macOS | `~/Library/Application Support/Google/Chrome` |
+| Linux | `~/.config/google-chrome` (`$XDG_CONFIG_HOME`), `~/.config/chromium`, Snap's Chromium |
+| Windows | `%LOCALAPPDATA%\Google\Chrome\User Data` |
+
+On Linux and Windows nothing else is needed: Full Disk Access is macOS only. On Windows, Claude
+Code runs commands in Git Bash, which `bin/maps-lists` relies on.
+
 
 - **macOS Full Disk Access:** reading that file needs it for the app macOS holds responsible for
   Claude's commands. Before connecting, Claude runs `maps-lists check-chrome`, which reports ready /
@@ -196,12 +210,12 @@ Chrome's `DevToolsActivePort` file (also for Chrome Beta/Canary, Brave, Edge and
   (`~/Library/Application Support/Claude/claude-code/<version>/…/claude.app`), not "Claude", and the
   path changes with every Claude Code update. So there the separate Chrome window is recommended;
   adding that path works until the next update, and Claude says so when an update breaks it.
-- Editor extensions (VS Code) can't read the file at all (`EPERM`). There Claude prepares the plan
+- On macOS, editor extensions (VS Code) can't read the file at all (`EPERM`). There Claude prepares the plan
   and gives you the command to run in a terminal; `/maps-lists:run --report` reads the result.
 - `403 Forbidden … Connection rejected` means the Allow dialog wasn't approved. Bring Chrome to the
   front, run it again, and click **Allow**.
 
-**A separate Chrome window.** No Full Disk Access needed: ask Claude to "use a separate Chrome
+**A separate Chrome window.** Works the same on every system, and needs no Full Disk Access on macOS: ask Claude to "use a separate Chrome
 window", or pick it when it's offered. It starts a dedicated Chrome profile on `127.0.0.1:9333`
 (`maps-lists chrome`, profile in `~/.gmaps-automation-profile`); sign into Google there once and the
 profile remembers it. The choice is remembered in `~/.maps-lists/config.json`

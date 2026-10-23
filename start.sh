@@ -31,7 +31,6 @@ fi
 # Sessions closed midway skip maps-lists:run's cleanup. Drop leftovers untouched for a week; newer ones
 # (unreviewed research, plan.retry.json, failure snapshots) stay so that work can be resumed.
 bin/maps-lists clean --older-than 7 >/dev/null 2>&1 || true
-[[ "$(uname)" == Darwin ]] || warn "Made for macOS. Elsewhere, open the review page link yourself; Chrome setup differs."
 [[ "$(uname)" != Darwin || -d "/Applications/Google Chrome.app" ]] ||
   warn "Google Chrome not found in /Applications. The Maps step drives Chrome, so install it before then."
 
@@ -103,7 +102,7 @@ next_steps() { # next_steps <research|md>
     echo "     откроет chrome://inspect/#remote-debugging: включите переключатель и скажите Claude продолжать."
     echo "     Затем Chrome спросит разрешение на подключение: нажмите ${bold}Allow${off} (Разрешить)."
     echo "  $((n++)). Вы выбираете «Применить» или «Пробный прогон». До этого в ${list:+«${list}»}${list:-список} ничего не записывается."
-    echo "  ${dim}Запускайте из терминала с полным доступом к диску (Full Disk Access), чтобы Claude мог подключиться к Chrome.${off}"
+    [[ "$(uname)" == Darwin ]] && echo "  ${dim}Запускайте из терминала с полным доступом к диску (Full Disk Access), чтобы Claude мог подключиться к Chrome.${off}"
     echo
     read -r -p "Нажмите Enter, чтобы начать (Ctrl-C — отмена)… " _ || exit 1
     return
@@ -121,7 +120,7 @@ next_steps() { # next_steps <research|md>
   echo "     chrome://inspect/#remote-debugging for you: switch the toggle on and tell Claude to continue."
   echo "     Chrome then asks to allow the connection: click ${bold}Allow${off}."
   echo "  $((n++)). You choose Apply or Dry run. Nothing is written to ${list:+\"$list\"}${list:-the list} before that."
-  echo "  ${dim}Run this from a terminal with Full Disk Access, so Claude can connect to Chrome.${off}"
+  [[ "$(uname)" == Darwin ]] && echo "  ${dim}Run this from a terminal with Full Disk Access, so Claude can connect to Chrome.${off}"
   echo
   read -r -p "Press Enter to start (Ctrl-C to cancel)… " _ || exit 1
 }

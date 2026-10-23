@@ -44,9 +44,10 @@ test("everydayChromeRunning: the user's Chrome, not the maps-lists profile or he
   const bin = `${app}/Contents/MacOS/Google Chrome`;
   const helper = `${app}/Contents/Frameworks/Google Chrome Framework.framework/Helpers/Google Chrome Helper.app/x --type=renderer`;
   const mapsLists = `${bin} --remote-debugging-port=9333 --user-data-dir=/Users/u/.gmaps-automation-profile`;
-  assert.equal(everydayChromeRunning([helper, mapsLists, "/bin/zsh"], app), false);
-  assert.equal(everydayChromeRunning([`${bin} --no-startup-window`, mapsLists], app), true);
-  assert.equal(everydayChromeRunning([bin], app), true);
+  const chrome = { exe: bin, app };
+  assert.equal(everydayChromeRunning([helper, mapsLists, "/bin/zsh"], chrome, "darwin"), false);
+  assert.equal(everydayChromeRunning([`${bin} --no-startup-window`, mapsLists], chrome, "darwin"), true);
+  assert.equal(everydayChromeRunning([bin], chrome, "darwin"), true);
 });
 
 test("readMode/writeMode: main by default, remembered, other keys kept", async () => {

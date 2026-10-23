@@ -7,16 +7,16 @@ saves them to a Google Maps list in your own Chrome, with a short note for each 
 
 ## What you need
 
-- A Mac with [Google Chrome](https://www.google.com/chrome/) installed. It doesn't have to be your default
+- A Mac, Windows or Linux computer with [Google Chrome](https://www.google.com/chrome/) installed. It doesn't have to be your default
   browser or the one you use: if you browse with Safari or Firefox, Claude uses a Chrome window just for
   maps-lists (sign into Google there once), and your lists show up in any browser and on your phone.
 - [Claude Code](https://claude.com/claude-code), signed in
 - [Node.js](https://nodejs.org/) version 18 or newer. If it's missing, Claude offers to install it
-  (with Homebrew) the first time.
+  the first time (with Homebrew on a Mac, winget on Windows).
 
 ## Install
 
-Open the Terminal app, run `claude`, and type:
+Open a terminal (Terminal on a Mac, PowerShell or Windows Terminal on Windows), run `claude`, and type:
 
 ```
 /plugin marketplace add ilyawzrd/maps-lists
@@ -26,12 +26,12 @@ Open the Terminal app, run `claude`, and type:
 Then turn on updates: type `/plugin`, open **Marketplaces** → **maps-lists** → **Enable auto-update**.
 New versions then install by themselves and take effect the next time you start Claude.
 
-That's all. Chrome needs two switches before Claude can save to Maps, and Claude walks you through
-both the first time:
+That's all. Chrome needs a switch or two before Claude can save to Maps, and Claude walks you
+through them the first time:
 
 - **Chrome's remote debugging:** Claude opens `chrome://inspect/#remote-debugging`; you switch it on.
   You can switch it off again when you're done.
-- **Full Disk Access for your terminal app**, so Claude can find Chrome's connection details. Claude
+- **On a Mac only, Full Disk Access for your terminal app**, so Claude can find Chrome's connection details. Claude
   opens the right page in System Settings and tells you which app to switch on. Then quit the terminal
   completely (Cmd-Q, or macOS's **Quit & Reopen**), open it again, start `claude` and type
   `/maps-lists:run` to pick up where you left off.
@@ -42,7 +42,7 @@ The plugin also works in the **Code** tab of the Claude desktop app: install it 
 just use it, since the desktop app and the terminal share installed plugins. Start a session on your
 Mac (not a cloud one).
 
-The one difference is connecting to Chrome. macOS doesn't give the desktop app's Claude Code the
+On a Mac, the one difference is connecting to Chrome. macOS doesn't give the desktop app's Claude Code the
 access it needs to use your normal Chrome, so the first time Claude offers:
 
 - **A separate Chrome window (recommended):** Chrome opens a window just for maps-lists. Sign into
@@ -54,7 +54,7 @@ access it needs to use your normal Chrome, so the first time Claude offers:
 
 ## Make a list
 
-Start `claude` in the Terminal app and just ask, in any language:
+Start `claude` in your terminal and just ask, in any language:
 
 ```
 Find natural wine bars with food in Gràcia, Barcelona, open late, and put them on a list "BCN Wine"
@@ -94,7 +94,7 @@ name matches several places, it asks which one, with "all of them" as an option;
 (dropping a file there pastes its location), for example:
 
 ```
-Add the places in /Users/you/Downloads/lisbon.pdf to my list "Lisbon Eats"
+Add the places in ~/Downloads/lisbon.pdf to my list "Lisbon Eats"
 ```
 
 It can be a text or Markdown file, a PDF, a Word document, a saved web page or email, or a
@@ -108,8 +108,8 @@ that list; nothing already in it is removed.
 Ask "what lists have I made?" or "show me my San Francisco list" (or type `/maps-lists:lists`). Claude
 shows each list with a link to open it in Google Maps, and the places and notes you saved.
 
-Everything is kept in one folder, `~/.maps-lists` (ask Claude to "open the folder", or press
-Cmd-Shift-G in Finder). Each list's places stay in `research/` there as a `*.places.md` file, so you
+Everything is kept in one folder, `.maps-lists` in your home folder (ask Claude to "open the
+folder"; on a Mac you can also press Cmd-Shift-G in Finder and type `~/.maps-lists`). Each list's places stay in `research/` there as a `*.places.md` file, so you
 can share it or run it again later. Other leftover files are removed after a successful save, or after
 a week if you closed a session midway.
 
@@ -128,12 +128,12 @@ a week if you closed a session midway.
 - Your Google Maps can be in any language. Saving works best when your Google account is set to English,
   Spanish or Russian; with any other, Claude opens Maps in English for its own visit, and your list
   still shows up in your language.
-- Run it from the Terminal app or the Claude desktop app's Code tab, not from inside an editor like
-  VS Code. Editors can't reach Chrome's settings.
+- On a Mac, run it from the Terminal app or the Claude desktop app's Code tab, not from inside an
+  editor like VS Code. Editors there can't reach Chrome's settings.
 
 - The first research asks whether you have a Reddit account. You don't need one: without it,
   Claude still sees Reddit through search results. With one (signed in at reddit.com in your
-  browser), it installs a small Reddit reader and reads whole threads (macOS asks once to allow
+  browser), it installs a small Reddit reader and reads whole threads (on a Mac, macOS asks once to allow
   "Chrome Safe Storage"). Either way it only reads Reddit, never posts or votes.
 
 ## If something goes wrong
@@ -142,7 +142,7 @@ a week if you closed a session midway.
   run it again and click **Allow**.
 - **Claude asks permission for every `maps-lists` command**: choose "Yes, and don't ask again"
   for it once.
-- **"EPERM" or "Operation not permitted"**: the app Claude runs in doesn't have Full Disk Access yet.
+- **"EPERM" or "Operation not permitted"** (Mac): the app Claude runs in doesn't have Full Disk Access yet.
   Claude offers to open the setting; after switching it on, quit the app with Cmd-Q and reopen it. In
   the Claude desktop app, see "Using the Claude desktop app" above.
 - **Chrome isn't connected**: Claude opens `chrome://inspect/#remote-debugging` for you. Switch it on

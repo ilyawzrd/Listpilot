@@ -23,9 +23,11 @@ Pass data files by these relative names. Pass anything else (the user's `.md`, a
 your scratchpad) as an absolute path.
 
 If a `maps-lists` command fails with `NODE_MISSING`, Node.js 18+ is missing or too old. If the
-message mentions Homebrew, ask with `AskUserQuestion` (header `Node.js`): **Install it now** (run
-`brew install node` with Bash, `timeout: 600000`, then retry the command) / **I'll install it
-myself** (link https://nodejs.org and stop). Without Homebrew, give the link and stop.
+message names an install command (`brew install node` with Homebrew, `winget install
+OpenJS.NodeJS.LTS` on Windows), ask with `AskUserQuestion` (header `Node.js`): **Install it now**
+(run that command with Bash, `timeout: 600000`, then retry; after winget, the user may have to
+restart Claude Code so Node is on PATH) / **I'll install it myself** (link https://nodejs.org and
+stop). Without one, give the link and stop.
 
 ## Input
 
@@ -50,8 +52,8 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
   Notes keep the language of the source file in any case:
   never translate them.
 
-The whole flow runs in this session, including the Chrome steps in `maps-lists:run`. Those need a
-session started from a terminal with Full Disk Access.
+The whole flow runs in this session, including the Chrome steps in `maps-lists:run`. On macOS those
+need a session started from a terminal with Full Disk Access.
 
 ## Flow
 
@@ -59,8 +61,11 @@ session started from a terminal with Full Disk Access.
    - **`.md`:** use it as is.
    - **`.txt`, `.html`/`.htm`, `.eml`, PDF, image** (a screenshot of a list or a menu): read it
      with the Read tool (PDF: `pages` in chunks of 20).
-   - **`.docx`, `.doc`, `.rtf`, `.odt`, `.pages`-exported text:** convert with macOS's built-in
-     `textutil -convert txt -stdout "<file>"` and read the output.
+   - **`.docx`, `.doc`, `.rtf`, `.odt`, `.pages`-exported text:** on macOS, convert with the
+     built-in `textutil -convert txt -stdout "<file>"` and read the output. On Linux or Windows,
+     use `pandoc -t plain "<file>"` if `pandoc` is installed (not `.doc`), else
+     `soffice --headless --cat "<file>"` if LibreOffice is; with neither, ask for the file saved
+     as PDF or for a copy-paste.
    - **Pasted text:** the text the user pasted.
    - Anything you can't read (a spreadsheet, an encrypted PDF, an unsupported format): say what
      you can read and ask for a copy-paste instead. Never guess at contents.

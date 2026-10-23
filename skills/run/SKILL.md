@@ -23,9 +23,11 @@ Pass data files by these relative names. Pass anything else (the user's `.md`, a
 your scratchpad) as an absolute path.
 
 If a `maps-lists` command fails with `NODE_MISSING`, Node.js 18+ is missing or too old. If the
-message mentions Homebrew, ask with `AskUserQuestion` (header `Node.js`): **Install it now** (run
-`brew install node` with Bash, `timeout: 600000`, then retry the command) / **I'll install it
-myself** (link https://nodejs.org and stop). Without Homebrew, give the link and stop.
+message names an install command (`brew install node` with Homebrew, `winget install
+OpenJS.NodeJS.LTS` on Windows), ask with `AskUserQuestion` (header `Node.js`): **Install it now**
+(run that command with Bash, `timeout: 600000`, then retry; after winget, the user may have to
+restart Claude Code so Node is on PATH) / **I'll install it myself** (link https://nodejs.org and
+stop). Without one, give the link and stop.
 
 ## Input
 
@@ -63,7 +65,8 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
    In Russian: header `Режим`; **Применить (рекомендуется)** / **Пробный прогон** / **Стоп**, with
    the descriptions above translated.
 2. **Check Chrome.** Run `maps-lists check-chrome`. It prints one JSON line,
-   `{mode, status, host: {kind, app?, appPath?}, chromeRunning, readyBefore?}`. Never look at `DevToolsActivePort`
+   `{mode, platform, status, host: {kind, app?, appPath?}, chromeRunning, readyBefore?}`
+   (`platform`: `darwin` macOS, `linux`, `win32` Windows). Never look at `DevToolsActivePort`
    yourself (no `ls`, `cat` or any other read): it grants control of the browser, and only
    `check-chrome` and the executor touch it.
 
@@ -77,14 +80,17 @@ myself** (link https://nodejs.org and stop). Without Homebrew, give the link and
    - **`debugging-off` with `chromeRunning: false`:** Chrome is installed but not open, so it's
      likely not their everyday browser (Safari, Firefox…) and maybe not signed into Google. Ask
      (header `Chrome`): **Separate Chrome window (Recommended)**: a window just for maps-lists, sign
-     into Google there once (below) / **I use Chrome**: open it with `open -a "Google Chrome"`, then
+     into Google there once (below) / **I use Chrome**: open it with `maps-lists chrome --main`, then
      continue with the `debugging-off` question below / **Cancel**.
    - **`debugging-off`:** the remote debugging toggle is off. Ask with
      `AskUserQuestion` (header `Chrome`): **Open the settings page** (run
-     `open -a "Google Chrome" "chrome://inspect/#remote-debugging"`, wait for the user to turn the
+     `maps-lists chrome --main 'chrome://inspect/#remote-debugging'`, wait for the user to turn the
      toggle on and say continue, then run `check-chrome` again) / **It's already on** (run it again) /
      **Cancel** (stop). In Russian: **Открыть настройки** / **Уже включено** / **Отмена**.
-   - **`no-access`:** macOS blocks the file: whatever it holds responsible for Claude's commands has
+   - **`no-access`** on Linux or Windows (`platform` isn't `darwin`): Chrome's folder isn't
+     readable by this user, which Full Disk Access has nothing to do with. Say so in one line and
+     offer **Use a separate Chrome window** (below) / **Cancel**.
+   - **`no-access`** on macOS: macOS blocks the file: whatever it holds responsible for Claude's commands has
      no Full Disk Access. macOS has no permission prompt for it. What to offer depends on `host.kind`:
      - **`terminal`** (or `unknown`): ask (header `Access`, in Russian `Доступ`):
        **Open System Settings (Recommended)**: run
