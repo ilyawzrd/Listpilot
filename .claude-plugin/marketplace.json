@@ -1,6 +1,6 @@
 {
   "name": "maps-lists",
-  "owner": { "name": "Ilia" },
+  "owner": { "name": "Ilia Litvinenko" },
   "description": "Google Maps saved lists from research or a .md file.",
   "plugins": [
     {
