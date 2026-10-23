@@ -22,3 +22,8 @@ dist/
 
 # ui-check baselines (ARIA snapshots of your Maps, account lines removed)
 ui-check/
+
+# Impeccable design context (local only)
+PRODUCT.md
+DESIGN.md
+.impeccable/

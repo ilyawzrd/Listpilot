@@ -265,9 +265,13 @@ Every research pass covers these, per category:
    `${CLAUDE_PLUGIN_ROOT}/examples/research.example.ru.json`.
    - `lang`: the conversation language's tag (`ru`, `es`, `ca`…); leave it out for English. It
      sets the review page's language. English and Russian have built-in labels. For any other
-     language also add `ui` with the page's labels translated: `hint`, `filtered`, `details`
-     ("Details ▾"), `hide` ("Hide ▴"), `placeholder`, `keep`, `noteFor`, `cancel`, `allBranches`,
-     `nothing`, `reconnecting`, `sending`, `sent`, `cancelled`, `close`, and `go`: the Continue
+     language also add `ui` with the page's labels translated: `hint`, `mapsList`, `filtered`,
+     `filteredNote`, `details` ("Why it's here"), `hide`, `sources`, `placeholder`, `keep`, `noteFor`,
+     `undo`, `cancel` ("Stop, don't save"), `discard`, `discardYes`, `discardNo`, `safe`,
+     `allBranches`, `untickAll`, `tickAll`, `jumpTo`, `toTop`, `reasonTrap`, `reasonViral`, `reasonClosed`,
+     `reasonThin`, `reasonClassic`, `nothing`, `reconnecting`, `sending`, `sent`, `sentNext`,
+     `cancelled`, `close`; the counts `picks`, `leftOut`, `sumKept`, `sumOff`, `sumEdited` as
+     "Label: {n}" and `of` as "{a} of {b}" (no plural forms needed); and `go`: the Continue
      button per plural category of the language, with `{n}` for the count, e.g.
      `{"one": "Continua amb {n} lloc →", "other": "Continua amb {n} llocs →"}` (use the categories
      the language has: `one`, `few`, `many`, `other`…). The English wording of each is the `en`

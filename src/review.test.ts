@@ -26,11 +26,13 @@ test("Russian page: lang, strings, «все филиалы» for the all-branche
   assert.equal(r.lang, "ru");
   const html = renderPage(r);
   assert.ok(html.includes('<html lang="ru">'));
-  assert.ok(html.includes("Отсеяно (1)"));
-  assert.ok(html.includes(">Отмена</button>"));
+  assert.ok(html.includes("<span>Отсеяно</span>"));
+  assert.ok(html.includes("Отсеяно: 1"));
+  assert.ok(html.includes(">Остановить, не сохранять</button>"));
   assert.ok(html.includes("Продолжить: 2 места →"));
-  assert.ok(html.includes('<span class="area">все филиалы</span>'));
-  assert.ok(!html.includes("Filtered out"));
+  assert.ok(html.includes('<span class="ar">все филиалы</span>'));
+  assert.ok(html.includes('<strong class="tag">Туристическое место</strong>'));
+  assert.ok(!html.includes("Left out"));
   assert.equal(buildPlacesMd(r).split("\n")[4], "- **Manteigaria** (all branches): Паштел-де-ната прямо из печи; есть стоя у стойки.");
   const raw = JSON.parse(await fs.readFile(EXAMPLE_RU, "utf8"));
   assert.equal(ResearchSchema.safeParse({ ...raw, list: "ж".repeat(40) }).success, true);
@@ -47,10 +49,10 @@ test("any language: Claude's labels over English, Continue per plural category",
   });
   const html = renderPage(ca);
   assert.ok(html.includes('<html lang="ca">'));
-  assert.ok(html.includes("Descartats (1)"));
+  assert.ok(html.includes("<span>Descartats</span>"));
   assert.ok(html.includes(">Cancel·la</button>"));
   assert.ok(html.includes("Continua amb 3 llocs →"));
-  assert.ok(html.includes("Details ▾")); // not translated → English
+  assert.ok(html.includes("Why it's here")); // not translated → English
   assert.equal(strings(ca).go(1), "Continua amb 1 lloc →");
   assert.equal(strings(ca).go(0), "Nothing selected");
 
@@ -61,7 +63,7 @@ test("any language: Claude's labels over English, Continue per plural category",
   // No labels: an English page, still valid.
   const de = ResearchSchema.parse({ ...raw, lang: "de" });
   assert.ok(renderPage(de).includes('<html lang="en">'));
-  assert.ok(renderPage(de).includes("Filtered out (1)"));
+  assert.ok(renderPage(de).includes("Left out: 1"));
   assert.equal(ResearchSchema.safeParse({ ...raw, lang: "es", ui: { go: { other: "Continuar →" } } }).success, false); // no {n}
 });
 
@@ -102,7 +104,20 @@ test("page escapes HTML from the research file and renders details links", async
   assert.ok(!html.includes("<script>alert"));
   assert.ok(!html.includes("<img src=x"));
   assert.ok(html.includes('<a href="https://timeout.com" target="_blank" rel="noopener">Time Out</a>'));
-  assert.ok(html.includes("Filtered out (1)"));
+  assert.ok(html.includes("Left out: 1"));
+});
+
+test("page: reason prefixes become tags, sources become short credits, counts need their placeholders", async () => {
+  const r = await loadResearch(EXAMPLE);
+  const html = renderPage(r);
+  assert.ok(html.includes('<strong class="tag">Tourist trap</strong> on a main tourist square'));
+  assert.ok(!html.includes(">trap:"));
+  assert.ok(html.includes('class="credit" href="https://www.timeout.com/lisbon/restaurants/best-pasteis-de-nata-in-lisbon" target="_blank" rel="noopener">Time Out Lisbon</a>'));
+  assert.ok(html.includes('data-orig="Pastel de nata straight from the oven; eat it standing at the counter."'));
+  assert.ok(html.includes('aria-expanded="false" aria-controls="l-x"')); // Left out starts folded
+  const raw = JSON.parse(await fs.readFile(EXAMPLE, "utf8"));
+  assert.equal(ResearchSchema.safeParse({ ...raw, lang: "ca", ui: { picks: "Triats" } }).success, false); // no {n}
+  assert.equal(ResearchSchema.safeParse({ ...raw, lang: "ca", ui: { of: "{a} de {b}", picks: "Triats: {n}" } }).success, true);
 });
 
 test("inline links markdown and bare URLs, http(s) only", () => {
