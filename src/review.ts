@@ -44,7 +44,7 @@ const UiSchema = z
     mapsList: z.string(), filteredNote: z.string(), sources: z.string(), discard: z.string(), discardYes: z.string(),
     discardNo: z.string(), safe: z.string(), untickAll: z.string(), tickAll: z.string(), jumpTo: z.string(), toTop: z.string(),
     undo: z.string(), yourNote: z.string(), addedBack: z.string(), sentNext: z.string(), reasonTrap: z.string(), reasonViral: z.string(), reasonClosed: z.string(),
-    reasonThin: z.string(), reasonClassic: z.string(),
+    reasonBad: z.string(), reasonThin: z.string(), reasonClassic: z.string(),
     /** Counts, with {n} (picks, leftOut, sumKept, sumOff, sumEdited) or {a} and {b} (of: "12 of 15"). */
     picks: z.string().includes("{n}"), leftOut: z.string().includes("{n}"), sumKept: z.string().includes("{n}"),
     sumOff: z.string().includes("{n}"), sumEdited: z.string().includes("{n}"), of: z.string().includes("{a}").includes("{b}"),
@@ -62,7 +62,7 @@ export const ResearchSchema = z.object({
   ui: UiSchema.optional(),
   list: z.string().min(1).max(MAX_LIST_NAME, `Maps cuts list names at ${MAX_LIST_NAME} characters; shorten it`),
   places: z.array(ItemSchema).min(1),
-  /** Filtered out by the research (trap, viral, closed, thin evidence); shown unticked. */
+  /** Filtered out by the research (trap, viral, bad, closed, unconfirmed); shown unticked. */
   excluded: z.array(ItemSchema.extend({ reason: z.string().min(1) })).default([]),
 });
 export type Research = z.infer<typeof ResearchSchema>;
@@ -165,7 +165,8 @@ const UI = {
     reasonTrap: "Tourist trap",
     reasonViral: "Viral",
     reasonClosed: "Closed",
-    reasonThin: "Thin evidence",
+    reasonBad: "Poor reviews",
+    reasonThin: "Can't confirm it's open",
     reasonClassic: "Classic",
     go: (n: number) => (n ? `Continue with ${plural("en", n)} →` : "Nothing selected"),
     nothing: "Nothing selected",
@@ -209,7 +210,8 @@ const UI = {
     reasonTrap: "Туристическое место",
     reasonViral: "Вирусное",
     reasonClosed: "Закрыто",
-    reasonThin: "Мало подтверждений",
+    reasonBad: "Плохие отзывы",
+    reasonThin: "Не подтверждено, что работает",
     reasonClassic: "Классика",
     go: (n: number) => (n ? `Продолжить: ${plural("ru", n)} →` : "Ничего не выбрано"),
     nothing: "Ничего не выбрано",
@@ -277,12 +279,13 @@ export function inline(s: string): string {
   return out.join("");
 }
 
-/** The research's reason prefixes (skills/research: trap:, viral:, closed:, thin evidence:, classic:) → a readable tag. */
+/** The research's reason prefixes (skills/research: trap:, viral:, bad:, closed:, unconfirmed:, classic:) → a readable tag.
+ *  `thin evidence:` is the old name of `unconfirmed:`, still read from older research files. */
 function reasonHtml(reason: string, t: Strings): string {
-  const m = reason.match(/^(trap|viral|closed|thin evidence|classic):\s*/i);
+  const m = reason.match(/^(trap|viral|bad|closed|unconfirmed|thin evidence|classic):\s*/i);
   if (!m) return inline(reason);
   const key = m[1]!.toLowerCase();
-  const tag = { trap: t.reasonTrap, viral: t.reasonViral, closed: t.reasonClosed, "thin evidence": t.reasonThin, classic: t.reasonClassic }[key]!;
+  const tag = { trap: t.reasonTrap, viral: t.reasonViral, closed: t.reasonClosed, bad: t.reasonBad, unconfirmed: t.reasonThin, "thin evidence": t.reasonThin, classic: t.reasonClassic }[key]!;
   return `<strong class="tag">${esc(tag)}</strong> ${inline(reason.slice(m[0].length))}`;
 }
 

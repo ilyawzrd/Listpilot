@@ -71,8 +71,9 @@ The test is quality, not fame. A famous place stays if locals and local press st
 its merits; its details start with "Classic." and say what to expect (lines, the one thing to
 order, when to go). It's dropped as a **tourist trap** when its reputation is better than what it
 serves (locals say overrated or "went downhill", touts, picture menus), as **viral** when the hype is
-one photogenic item, and when it's **closed**. Places need two independent sources or one strong
-local one. "Hidden gems" without "only" or "also" gets one extra question: mix in the classics, or
+one photogenic item, as **bad** when reviews or locals say the food is poor now, and when it's
+**closed**. Everything else the research found stays, new openings and single-source places
+included, with the caveat in its details. "Hidden gems" without "only" or "also" gets one extra question: mix in the classics, or
 only lesser-known places. Every candidate ends up either kept or in the filtered-out section with its reason, so
 you can tick any of them back in on the review page.
 
@@ -137,7 +138,7 @@ notes, and the names and addresses in the summary. `--lang <tag>` forces it (`es
 The review page has built-in labels in English and Russian; for any other language Claude writes
 translated labels into the research file (`ui`), and anything missing shows in English. Machine
 tokens in the research file stay English (`area: "all branches"`, and the
-`trap:`/`viral:`/`closed:`/`thin evidence:`/`classic:` reason prefixes).
+`trap:`/`viral:`/`bad:`/`closed:`/`unconfirmed:`/`classic:` reason prefixes).
 
 This is only the conversation language. The Maps UI language is a separate thing, detected from your
 Google account: the executor knows Maps' buttons in English, Spanish and Russian, and opens Maps in
